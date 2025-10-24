@@ -1,0 +1,11 @@
+lab0/*/quartus_prj/db
+lab0/*/quartus_prj/incremental_db
+lab0/*/quartus_prj/output_files
+lab0/*/quartus_prj/simulation
+lab0/*/quartus_prj/*.txt
+lab0/*/quartus_prj/*.qws
+lab0/*/tb/work
+lab0/*/tb/transcript
+lab0/*/tb/*.mti
+lab0/*/tb/*.mpf
+lab0/*/tb/*.wlf
