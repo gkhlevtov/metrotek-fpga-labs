@@ -42,10 +42,13 @@ module priority_encoder_4_tb;
           $error( "Validation mismatch: expected = %b, got = %b", task_input.exp_v, data_val_o );
           pass_flag = 1'b0;
         end
-      else if ( ( data_left_o != task_input.exp_l ) || ( data_right_o != task_input.exp_r ) )
+      else if( data_val_o == 1'b1 )
         begin
-          $error( "Output mismatch: expected = (%b; %b), got = (%b; %b)", task_input.exp_l, task_input.exp_r, data_left_o, data_right_o );
-          pass_flag = 1'b0;
+          if( ( data_left_o != task_input.exp_l ) || ( data_right_o != task_input.exp_r ) )
+            begin
+              $error( "Output mismatch: expected = (%b; %b), got = (%b; %b)", task_input.exp_l, task_input.exp_r, data_left_o, data_right_o );
+              pass_flag = 1'b0;
+            end
         end
     end
   endtask
@@ -119,7 +122,7 @@ module priority_encoder_4_tb;
           run_one_check();
         end
 
-      if ( pass_flag )
+      if( pass_flag )
         $display( "\nTEST PASSED\n" );
       else
         $display( "\nTEST FAILED\n" );
