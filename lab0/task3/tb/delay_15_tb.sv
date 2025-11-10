@@ -52,15 +52,17 @@ module delay_15_tb;
       rst          <= 1'b1;
     end
   
-  always @( posedge clk )
+  // Input history saving
+  initial
     begin
-      if( cycle < MAX_CYCLES )
+      for (cycle = 0; cycle < MAX_CYCLES; cycle++)
         begin
-          data_history[cycle] <= data_i;
-          cycle <= cycle + 1;
+          @( posedge clk );
+          data_history[cycle] = data_i;
         end
     end
 
+  
   delay_15 dut (
     .clk_i        ( clk          ),
     .rst_i        ( rst          ),
@@ -77,7 +79,7 @@ module delay_15_tb;
       if( data_o_exp != data_o )
         begin
           $error( "Mismatch: delay = %0d, expected = %b, got = %b", data_delay_i, data_history[index], data_o );
-          pass_flag <= 1'b0;
+          pass_flag = 1'b0;
         end
     end
   endtask
@@ -96,11 +98,11 @@ module delay_15_tb;
           
           if( data_delay_i != prev_delay )
             begin
-              prev_delay <= data_delay_i;
+              prev_delay = data_delay_i;
               ##16;
             end
           
-          data_i <= $urandom_range( 0, 1 );
+          data_i = $urandom_range( 0, 1 );
           run_one_check();
           ##1;
         end
