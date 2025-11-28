@@ -104,7 +104,7 @@ module crc_16_ansi_tb;
   task run_one_check ();
     begin
       data_o_exp = crc_16_ansi_func( data_pack );
-      // $display( "exp = %b\ngot = %b\nat time = %t", data_o_exp, data_o, $time );
+      $display( "inp = %b\nexp = %b\ngot = %b\nat time = %t", data_pack, data_o_exp, data_o, $time );
       if (data_o != data_o_exp )
         begin
           $error( "Mismatch: input data = %b, expected = %b, got = %b", data_pack, data_o_exp, data_o );
@@ -125,6 +125,14 @@ module crc_16_ansi_tb;
       run_one_check();
 
       data_pack = { DATA_LEN{1'b0} };
+      load_data();
+      run_one_check();
+
+      // 1010... check
+      for (int i = 0; i < DATA_LEN; i++)
+        begin
+          data_pack[i] = (i % 2);
+        end
       load_data();
       run_one_check();
 
