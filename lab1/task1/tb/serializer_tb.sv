@@ -98,17 +98,22 @@ module serializer_tb;
     output int          bit_count
   );
     int wait_cycles = 0;
-    bit_count = '0;
-    data_out  = '0;
+    bit_count       = 0;
+    data_out        = '0;
 
-    @( posedge clk );
-
-    while( !busy_o )
+    do
       begin
-        @(posedge clk);
-        wait_cycles = wait_cycles + 1;
-        if ( wait_cycles > 3 )
+        @( posedge clk );
+        wait_cycles++;
+        if( wait_cycles > 4 )
           return;
+      end
+    while( !busy_o );
+
+    if( ser_data_val_o )
+      begin
+        data_out[15] = ser_data_o;
+        bit_count++;
       end
 
     while( busy_o )
@@ -147,14 +152,15 @@ module serializer_tb;
     
     if ( rx_len != exp_o_len )
       begin
-        $error( "Length mismatch at %0t: exp=%h\ngot=%h", $time, exp_o_len, rx_len );
+        $error( "Length mismatch:\nexp=%h\ngot=%h\n", exp_o_len, rx_len );
         pass_flag = 0'b0;
       end
     else if ( rx_data != exp_o )
       begin
-        $error( "Data mismatch at %0t: exp=%h\ngot=%h\n", $time, exp_o, rx_data );
+        $error( "Data mismatch:\nexp=%h\ngot=%h\n", exp_o, rx_data );
         pass_flag = 0'b0;
       end
+    @( posedge clk );
   endtask
 
   initial

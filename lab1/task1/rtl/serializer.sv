@@ -22,47 +22,49 @@ module serializer(
 
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
+      if( srst_i )
         data_reg <= 16'b0;
-      else if ( start )
+      else if( start )
         data_reg <= data_i;
     end
 
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
+      if( srst_i )
         busy_o <= 1'b0;
-      else if ( start )
+      else if( start )
         busy_o <= 1'b1;
-      else if ( bit_count == 5'd0 )
+      else if( bit_count == 5'd0 )
         busy_o <= 1'b0;
     end
   
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
-        bit_count <= 5'b0;
-      else if ( start )
-        bit_count <= ( data_mod_i == 4'b0 ) ? ( 5'd16 ) : ( data_mod_i );
-      else if ( busy_o )
+      if( srst_i )
+        bit_count <= 5'd0;
+      else if( start )
+        bit_count <= ( data_mod_i == 4'd0 ) ? ( 5'd15 ) : ( data_mod_i - 4'd1 );
+      else if( busy_o )
         bit_count <= bit_count - 1'd1;
     end
 
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
+      if( srst_i )
         cur_bit <= 4'd0;
-      else if ( start )
-        cur_bit <= 4'd15;
-      else if ( busy_o && ( bit_count != 5'd0 ) )
+      else if( start )
+        cur_bit <= 4'd14;
+      else if( busy_o && ( bit_count != 5'd0 ) )
         cur_bit <= cur_bit - 4'd1;
     end
 
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
+      if( srst_i )
         ser_data_val_o <= 1'b0;
-      else if ( busy_o && ( bit_count != 0 ) )
+      else if( start )
+        ser_data_val_o <= 1'b1;
+      else if( busy_o && ( bit_count != 5'd0 ) )
         ser_data_val_o <= 1'b1;
       else
         ser_data_val_o <= 1'b0;
@@ -70,9 +72,13 @@ module serializer(
 
   always_ff @( posedge clk_i )
     begin
-      if ( srst_i )
+      if( srst_i )
         ser_data_o <= 1'b0;
-      else if ( busy_o )
+      else if( start )
+        ser_data_o <= data_i[15];
+      else if( busy_o && ( bit_count != 5'd0 ) )
         ser_data_o <= data_reg[cur_bit];
+      else
+        ser_data_o <= 1'b0;
     end
 endmodule
