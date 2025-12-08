@@ -19,6 +19,8 @@ module serializer(
   logic        start;
 
   assign start = data_val_i && ( !busy_o ) && ( data_mod_i != 4'd1 ) && ( data_mod_i != 4'd2 );
+  
+  assign ser_data_val_o = busy_o;
 
   always_ff @( posedge clk_i )
     begin
@@ -61,22 +63,10 @@ module serializer(
   always_ff @( posedge clk_i )
     begin
       if( srst_i )
-        ser_data_val_o <= 1'b0;
-      else if( start )
-        ser_data_val_o <= 1'b1;
-      else if( busy_o && ( bit_count != 5'd0 ) )
-        ser_data_val_o <= 1'b1;
-      else
-        ser_data_val_o <= 1'b0;
-    end
-
-  always_ff @( posedge clk_i )
-    begin
-      if( srst_i )
         ser_data_o <= 1'b0;
       else if( start )
         ser_data_o <= data_i[15];
-      else if( busy_o && ( bit_count != 5'd0 ) )
+      else if( busy_o )
         ser_data_o <= data_reg[cur_bit];
       else
         ser_data_o <= 1'b0;
