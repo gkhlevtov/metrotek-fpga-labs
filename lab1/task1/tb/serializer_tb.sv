@@ -53,8 +53,8 @@ module serializer_tb;
       srst           <= '0;
     end
 
-  serializer_top dut(
-    .clk_150m       ( clk            ),
+  serializer dut(
+    .clk_i          ( clk            ),
     .srst_i         ( srst           ),
     .data_i         ( data_i         ),
     .data_mod_i     ( data_mod_i     ),
@@ -105,7 +105,7 @@ module serializer_tb;
       begin
         @( posedge clk );
         wait_cycles++;
-        if( wait_cycles > 4 )
+        if( wait_cycles > 2 )
           return;
       end
     while( !busy_o );
