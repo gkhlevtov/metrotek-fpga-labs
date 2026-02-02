@@ -11,13 +11,14 @@ module debouncer #(
   localparam int COUNTER_WIDTH = $clog2(GLITCH_CYCLES + 1);
 
   logic [COUNTER_WIDTH-1:0] counter;
-  logic                     key_reg;
+  logic                     key_reg_0;
+  logic                     key_reg_1;
   logic                     key_prev;
   wire                      key_fall;
 
   enum logic [1:0] {IDLE_S,
                     COUNT_S,
-                    PULSE_S} state, next_state;
+                    HOLD_S} state, next_state;
 
   always_ff @( posedge clk_i )
     begin
@@ -37,15 +38,16 @@ module debouncer #(
 
         COUNT_S: 
           begin
-            if( key_reg == 1'b1 )
+            if( key_reg_1 == 1'b1 )
               next_state = IDLE_S;
-            else if( counter == 1'd0 )
-              next_state = PULSE_S;
+            else if( counter == '0 )
+              next_state = HOLD_S;
           end
 
-        PULSE_S: 
+        HOLD_S:
           begin
-            next_state = IDLE_S;
+            if( key_reg_1 == 1'b1 )
+              next_state = IDLE_S;
           end
 
         default:
@@ -53,25 +55,26 @@ module debouncer #(
       endcase
     end
 
-  assign key_fall = ( key_prev == 1'b1 ) && ( key_reg == 1'b0 );
+  assign key_fall = ( key_prev == 1'b1 ) && ( key_reg_1 == 1'b0 );
 
   always_ff @( posedge clk_i )
     begin
-      key_prev <= key_reg;
-      key_reg  <= key_i;
+      key_reg_0 <= key_i;
+      key_reg_1 <= key_reg_0;
+      key_prev  <= key_reg_1;
     end
   
   always_ff @( posedge clk_i )
     begin
       if ( key_fall )
         counter <= $size(counter)'(GLITCH_CYCLES - 1);
-      else if ( ( state == COUNT_S ) && ( counter != 1'd0 ) )
+      else if ( ( state == COUNT_S ) && ( counter != '0 ) )
         counter <= counter - 1'b1;
     end
 
   always_ff @( posedge clk_i )
     begin
-      key_pressed_stb_o <= ( ( state == COUNT_S ) && ( counter == 1'd0 ) );
+      key_pressed_stb_o <= ( ( state == COUNT_S ) && ( counter == '0 ) );
     end
 
 endmodule
