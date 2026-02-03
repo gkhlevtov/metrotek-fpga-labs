@@ -11,66 +11,60 @@ module bit_population_counter #(
   output logic                   data_val_o
 );
 
-  localparam int N_BLOCKS  = WIDTH / 8;
-  localparam int TAIL_LEN  = WIDTH % 8;
-  localparam int CNT_WIDTH = ( N_BLOCKS > 0 ) ? $clog2(N_BLOCKS+1) : 1;
+  localparam int BLOCK_LEN = 8;
+  localparam int N_BLOCKS  = WIDTH / BLOCK_LEN;
+  localparam int STAGES    = ( WIDTH + BLOCK_LEN - 1 ) / BLOCK_LEN;
 
-  logic [WIDTH-1:0]       data_reg;
-  logic [$clog2(WIDTH):0] acc;
-  logic [CNT_WIDTH-1:0]   idx;
-  logic                   busy;
+  logic [$clog2(WIDTH):0] pipe_acc  [0:STAGES];
+  logic [WIDTH-1:0]       pipe_data [0:STAGES];
+  logic                   pipe_val  [0:STAGES];
 
-  function automatic logic [$clog2(WIDTH):0] sum_block( input logic [7:0] b );
-    return b[0] + b[1] + b[2] + b[3] + b[4] + b[5] + b[6] + b[7];
-  endfunction
-
-  function automatic logic [$clog2(WIDTH):0] sum_tail( input logic [TAIL_LEN-1:0] b );
-    logic [$clog2(WIDTH):0] sum;
+  function automatic logic [$clog2(BLOCK_LEN):0] count_ones_block( input logic [BLOCK_LEN-1:0] b );
+    logic [$clog2(BLOCK_LEN):0] sum;
     sum = '0;
-    for( int i = 0; i < TAIL_LEN; i++ )
+    for( int i = 0; i < BLOCK_LEN; i++ )
       sum += b[i];
     return sum;
   endfunction
 
-  always_ff @( posedge clk_i )
+  always_comb
     begin
-      if( srst_i )
-        begin
-          acc        <= '0;
-          idx        <= '0;
-          busy       <= 1'b0;
-          data_o     <= '0;
-          data_val_o <= 1'b0;
-        end
-      else
-        begin
-          data_val_o <= 1'b0;
-
-          if( ( !busy ) && ( data_val_i ) )
-            begin
-              data_reg <= data_i;
-              acc      <= '0;
-              idx      <= '0;
-              busy     <= 1'b1;
-            end
-          else if( busy )
-            begin
-              if( idx < N_BLOCKS )
-                begin
-                  acc <= acc + sum_block(data_reg[idx*8 +: 8]);
-                  idx <= idx + 1'b1;
-                end
-              else
-                begin
-                  if( TAIL_LEN != 0 )
-                    data_o <= acc + sum_tail(data_reg[WIDTH-1 -: TAIL_LEN]);
-                  else
-                    data_o <= acc;
-                  data_val_o <= 1'b1;
-                  busy       <= 1'b0;
-                end
-            end
-        end
+      pipe_acc[0]  = '0;
+      pipe_data[0] = data_i;
+      pipe_val[0]  = data_val_i;
     end
+
+  genvar i;
+  generate
+    for( i = 0; i < STAGES; i++ )
+      begin: stages
+        localparam int CUR_WIDTH = ( ( i == STAGES-1 ) && ( WIDTH % BLOCK_LEN != 0 ) ) 
+                                    ? ( WIDTH % BLOCK_LEN ) 
+                                    : ( BLOCK_LEN );
+
+        always_ff @( posedge clk_i )
+          begin
+            if( srst_i )
+              begin
+                pipe_val[i+1]  <= 1'b0;
+                pipe_acc[i+1]  <= '0;
+                pipe_data[i+1] <= '0;
+              end
+            else
+              begin
+                pipe_val[i+1] <= pipe_val[i];
+                
+                if( pipe_val[i] )
+                  begin
+                    pipe_acc[i+1]  <= pipe_acc[i] + count_ones_block(pipe_data[i][CUR_WIDTH-1:0]);
+                    pipe_data[i+1] <= pipe_data[i] >> CUR_WIDTH;
+                  end
+              end
+          end
+      end
+  endgenerate
+
+  assign data_o     = pipe_acc[STAGES];
+  assign data_val_o = pipe_val[STAGES];
 
 endmodule

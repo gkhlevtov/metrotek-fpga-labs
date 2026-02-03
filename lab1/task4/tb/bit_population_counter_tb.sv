@@ -1,6 +1,6 @@
 module bit_population_counter_tb;
   // Data size
-  parameter WIDTH = 8;
+  parameter WIDTH = 32;
 
   // Number of random tests 
   parameter N     = 50;
@@ -29,8 +29,7 @@ module bit_population_counter_tb;
 
   typedef struct packed {
     logic [WIDTH-1:0]       d_i;
-    logic                   d_v_i;
-    logic                   exp_v;
+    logic                   valid;
     logic [$clog2(WIDTH):0] exp_o;
   } task_input;
 
@@ -71,19 +70,25 @@ module bit_population_counter_tb;
     .data_o     ( data_o     ),
     .data_val_o ( data_val_o )
   );
+  
+  function automatic logic [WIDTH-1:0] get_random_input();
+    logic [WIDTH-1:0] result;
+    result = '0;
+    
+    for( int i = 0; i < WIDTH; i += 32 )
+      begin
+        result = result | ( WIDTH'($urandom) << i );
+      end
+    
+    return result;
+  endfunction
 
   function automatic task_input generate_input;
     task_input generated_data;
 
-    generated_data = '0;
-
-    generated_data.d_i = $urandom_range( $pow( 2, WIDTH ) - 1 );
-
-    for( int i = 0; i < WIDTH; i++ )
-      generated_data.exp_o += generated_data.d_i[i];
-
-    generated_data.d_v_i = $urandom_range( 1 );
-    generated_data.exp_v = generated_data.d_v_i;
+    generated_data.d_i   = get_random_input();
+    generated_data.valid = ( $urandom_range(100) >= 20 );
+    generated_data.exp_o = $countones(generated_data.d_i);  
 
     return generated_data;
   endfunction
@@ -97,8 +102,7 @@ module bit_population_counter_tb;
 
       // Zeroes test
       test_data.d_i   = '0;
-      test_data.d_v_i = 1'b1;
-      test_data.exp_v = 1'b1;
+      test_data.valid = 1'b1;
       test_data.exp_o = '0;
       mbx.put(test_data);
       total_tests++;
@@ -106,17 +110,15 @@ module bit_population_counter_tb;
 
       // Ones test
       test_data.d_i   = '1;
-      test_data.d_v_i = 1'b1;
-      test_data.exp_v = 1'b1;
+      test_data.valid = 1'b1;
       test_data.exp_o = ($clog2(WIDTH) + 1)'(WIDTH);
       mbx.put(test_data);
       total_tests++;
       expected_tests++;
 
       // Invalid input data test
-      test_data.d_i   = $urandom();
-      test_data.d_v_i = 1'b0;
-      test_data.exp_v = 1'b0;
+      test_data.d_i   = get_random_input();
+      test_data.valid = 1'b0;
       test_data.exp_o = '0;
       mbx.put(test_data);
       total_tests++;
@@ -126,9 +128,8 @@ module bit_population_counter_tb;
         begin
           test_data = generate_input();
           mbx.put(test_data);
-          
           total_tests++;
-          if ( test_data.exp_v )
+          if( test_data.valid )
             expected_tests++;
         end
       
@@ -146,17 +147,12 @@ module bit_population_counter_tb;
       begin
         gen_mbx.get(tx_data);
 
-        data_i     <= tx_data.d_i;
-        data_val_i <= tx_data.d_v_i;
         @( posedge clk );
-        data_val_i <= 1'b0;
+        data_i     <= ( tx_data.valid ) ? ( tx_data.d_i ) : ( 'x );
+        data_val_i <= tx_data.valid;
 
-        if( tx_data.exp_v )
-          begin
-            exp_mbx.put(tx_data);
-            wait(data_val_o);
-            @( posedge clk );
-          end
+        if( tx_data.valid )
+          exp_mbx.put(tx_data);
       end
   endtask
 
@@ -208,14 +204,16 @@ module bit_population_counter_tb;
       join_none
 
       wait(tests_done);
+      disable fork;
+
+      repeat(5)
+        @( posedge clk );
 
       if( pass_flag )
         $display( "\nTEST PASSED\n" );
       else
         $display( "\nTEST FAILED\n" );
-
-      #20;
-
+      
       $display( "Simulation end" );
       $finish;
     end
