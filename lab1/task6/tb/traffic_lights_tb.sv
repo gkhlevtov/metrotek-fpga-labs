@@ -119,10 +119,18 @@ module traffic_lights_tb;
   
   task automatic check_lights( color_t color );
     begin
-      if( {red_o, yellow_o, green_o} != color )
+      if( {red_o, yellow_o, green_o} !== color )
         begin
-          $error("Error at %0t: Expected RYG=%b, Got %b%b%b", 
-                $time, color, red_o, yellow_o, green_o);
+          if( $isunknown({ red_o, yellow_o, green_o }) == 1 )
+            begin
+              $error("Error at %0t: X/Z detected on outputs RYG=%b%b%b",
+                    $time, red_o, yellow_o, green_o);
+            end
+          else
+            begin
+              $error("Error at %0t: Expected RYG=%b, Got %b%b%b", 
+                    $time, color, red_o, yellow_o, green_o);
+            end
           pass_flag = 1'b0;
         end
     end
