@@ -3,11 +3,13 @@ lab*/*/quartus_prj/db
 lab*/*/quartus_prj/incremental_db
 lab*/*/quartus_prj/output_files
 lab*/*/quartus_prj/simulation
+lab*/*/quartus_prj/greybox_tmp
 lab*/*/quartus_prj/.qsys_edit
 lab*/*/quartus_prj/*.txt
 lab*/*/quartus_prj/*.qws
 lab*/*/quartus_prj/*.rpt
 lab*/*/tb/work
+lab*/*/tb/altera_mf
 lab*/*/tb/transcript
 lab*/*/tb/*.mti
 lab*/*/tb/*.mpf
