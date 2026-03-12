@@ -23,3 +23,6 @@ Repository for STC Metrotek labs.
 * **Task №5** - [Debouncer](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab1/task5)
 
 * **Task №6** - [Traffic light FSM](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab1/task6)
+
+## Lab №2
+* **Task №1** - [FIFO](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab2/task1)

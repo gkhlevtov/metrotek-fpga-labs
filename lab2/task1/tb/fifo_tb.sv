@@ -40,8 +40,8 @@ module fifo_tb;
   // Simulation success flag
   bit pass_flag;
 
-  // Reset flag
-  bit rst_done;
+  // Reset event
+  event rst_done;
 
   initial
     forever
@@ -61,7 +61,7 @@ module fifo_tb;
 
       @( posedge clk );
       srst      = '0;
-      rst_done  = '1;
+      -> rst_done;
     end
   
   scfifo #(
@@ -226,49 +226,130 @@ module fifo_tb;
     end
   endtask
 
-  always @( posedge clk )
+  task automatic run_random_filling_test();
     begin
-      if( ( rst_done ) && ( !srst ) )
+      while( !gm_full_o )
         begin
-          if( ( dut_q_o ) !== ( gm_q_o ) )
-            begin
-              $error("Error at %0t: Data mismatch:\nDUT: %h\nGM: %h",
-                      $time, dut_q_o, gm_q_o);
-              pass_flag = 1'b0;
-            end
+          @( posedge clk );
+          wrreq_i <= ( $urandom_range(0, 99) < 80 ); 
+          rdreq_i <= ( ( $urandom_range(0, 99) < 20 ) && ( !gm_empty_o ) );
+          data_i  <= $urandom();
+        end
+      
+      wrreq_i <= 1'b0;
+      rdreq_i <= 1'b0;
+      @( posedge clk );
+    end
+  endtask
 
-          if( ( dut_usedw_o[AWIDTH-1:0] ) !== ( gm_usedw_o[AWIDTH-1:0] ) )
-            begin
-              $error("Error at %0t: usedw mismatch:\nDUT: %d\nGM: %d", $time, dut_usedw_o, gm_usedw_o);
-              pass_flag = 1'b0;
-            end
+  task automatic run_random_emptying_test();
+    begin
+      while( !gm_empty_o )
+        begin
+          @( posedge clk );
+          wrreq_i <= ( ( $urandom_range(0, 99) < 40 ) && ( !gm_full_o  ) ); 
+          rdreq_i <= ( $urandom_range(0, 99) < 80 );
+          data_i  <= $urandom();
+        end
+      
+      @( posedge clk );
+      wrreq_i <= 1'b0;
+      rdreq_i <= 1'b0;
+    end
+  endtask
 
-          if( ( dut_full_o !== gm_full_o ) || ( dut_almost_full_o !== gm_almost_full_o ) )
+  task automatic monitor_q_o();
+    begin
+      forever
+        begin
+          @( posedge clk );
+          if( !srst )
             begin
-              $error("Error at %0t: Full flags mismatch:\nFull(%b/%b),\nAlmost full(%b/%b)", 
-                      $time, dut_full_o, gm_full_o, dut_almost_full_o, gm_almost_full_o);
-              pass_flag = 1'b0;
-            end
-
-          if( ( dut_empty_o !== gm_empty_o ) || ( dut_almost_empty_o !== gm_almost_empty_o ) )
-            begin
-              $error("Error at %0t: Empty flags mismatch:\nEmpty(%b/%b),\nAlmost empty(%b/%b)", 
-                      $time, dut_empty_o, gm_empty_o, dut_almost_empty_o, gm_almost_empty_o);
-              pass_flag = 1'b0;
+              if( ( dut_q_o ) !== ( gm_q_o ) )
+                begin
+                  $error("Error at %0t: Data mismatch:\nDUT: %h\nGM: %h",
+                          $time, dut_q_o, gm_q_o);
+                  pass_flag = 1'b0;
+                end
             end
         end
     end
+  endtask
+
+  task automatic monitor_usedw_o();
+    begin
+      forever
+        begin
+          @( posedge clk );
+          if( !srst )
+            begin
+              if( ( dut_usedw_o[AWIDTH-1:0] ) !== ( gm_usedw_o[AWIDTH-1:0] ) )
+                begin
+                  $error("Error at %0t: usedw mismatch:\nDUT: %d\nGM: %d", $time, dut_usedw_o, gm_usedw_o);
+                  pass_flag = 1'b0;
+                end
+            end
+        end
+    end
+  endtask
+
+  task automatic monitor_full_flags();
+    begin
+      forever
+        begin
+          @( posedge clk );
+          if( !srst )
+            begin
+              if( ( dut_full_o !== gm_full_o ) || ( dut_almost_full_o !== gm_almost_full_o ) )
+                begin
+                  $error("Error at %0t: Full flags mismatch:\nFull(%b/%b),\nAlmost full(%b/%b)", 
+                          $time, dut_full_o, gm_full_o, dut_almost_full_o, gm_almost_full_o);
+                  pass_flag = 1'b0;
+                end
+            end
+        end
+    end
+  endtask
+
+  task automatic monitor_empty_flags();
+    begin
+      forever
+        begin
+          @( posedge clk );
+          if( !srst )
+            begin
+              if( ( dut_empty_o !== gm_empty_o ) || ( dut_almost_empty_o !== gm_almost_empty_o ) )
+                begin
+                  $error("Error at %0t: Empty flags mismatch:\nEmpty(%b/%b),\nAlmost empty(%b/%b)", 
+                          $time, dut_empty_o, gm_empty_o, dut_almost_empty_o, gm_almost_empty_o);
+                  pass_flag = 1'b0;
+                end
+            end
+        end
+    end
+  endtask
   
   initial
     begin
-      wait(rst_done);
+      wait(rst_done.triggered);
       @( posedge clk );
       $display( "Simulation start" );
+      
+      fork: monitoring
+        monitor_q_o();
+        monitor_usedw_o();
+        monitor_full_flags();
+        monitor_empty_flags();
+      join_none
       
       run_test_full_empty();
       run_test_simultaneous(N);
       run_test_reset();
+      run_random_filling_test();
+      run_random_emptying_test();
       run_random_tests(N);
+
+      disable monitoring;
 
       if( pass_flag )
         $display( "\nTEST PASSED\n" );

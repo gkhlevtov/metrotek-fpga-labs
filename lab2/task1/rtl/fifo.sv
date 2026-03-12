@@ -112,8 +112,10 @@ module fifo #(
     begin
       if( srst_i )
         empty_o <= 1'b1;
-      else if( ( !wr_allowed ) && ( rd_allowed  ) )
-        empty_o <= ( usedw == (AWIDTH+1)'(1) );
+      else if( ( rd_allowed ) && ( usedw == (AWIDTH+1)'(1) ) )
+        empty_o <= 1'b1;
+      else if( ( wr_allowed ) && ( usedw == '0             ) )
+        empty_o <= 1'b1;
       else if( usedw > 0 )
         empty_o <= 1'b0;
       else
