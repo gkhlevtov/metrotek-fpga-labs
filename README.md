@@ -7,7 +7,7 @@ Repository for STC Metrotek labs.
 
 * **Task №2** - [Priority encoder](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab0/task2)
 
-* **Task №3** - [Delay Line](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab0/task3)
+* **Task №3** - [Delay line](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab0/task3)
 
 * **Task №4** - [CRC-16-ANSI](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab0/task4)
 
@@ -26,3 +26,5 @@ Repository for STC Metrotek labs.
 
 ## Lab №2
 * **Task №1** - [FIFO](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab2/task1)
+
+* **Task №2** - [Avalon-ST sort](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab2/task2)
