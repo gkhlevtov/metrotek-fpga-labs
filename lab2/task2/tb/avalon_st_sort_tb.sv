@@ -36,6 +36,9 @@ module avalon_st_sort_tb;
   // Mailbox for expected data
   mailbox #( pkt_t ) exp_mbx = new();
 
+  // Total amount of tests
+  int total_n;
+
   // Simulation success flag
   bit pass_flag;
 
@@ -87,7 +90,7 @@ module avalon_st_sort_tb;
     return s;
   endfunction
 
-  task automatic generate_tests( int random_n, mailbox #( pkt_t ) gen_mbx );
+  task automatic generate_tests( int random_n, mailbox #( pkt_t ) gen_mbx, output int total_n );
     begin
       pkt_t pkt;
       
@@ -95,12 +98,14 @@ module avalon_st_sort_tb;
       pkt.delete();
       pkt.push_back( word_t'( $urandom ) );
       gen_mbx.put(pkt);
+      total_n += 1;
 
       // Max len packet test
       pkt.delete();
       for( int i = 0; i < MAX_PKT_LEN; i++ ) 
         pkt.push_back( word_t'( $urandom ) );
       gen_mbx.put(pkt);
+      total_n += 1;
 
       // Best case max len packet
       pkt.delete();
@@ -108,6 +113,7 @@ module avalon_st_sort_tb;
         pkt.push_back( word_t'( $urandom ) );
       pkt.sort();
       gen_mbx.put(pkt);
+      total_n += 1;
 
       // Worst case max len packet
       pkt.delete();
@@ -115,6 +121,7 @@ module avalon_st_sort_tb;
         pkt.push_back( word_t'( $urandom ) );
       pkt.rsort();
       gen_mbx.put(pkt);
+      total_n += 1;
 
       // Random tests
       for( int i = 0; i < random_n; i++ )
@@ -126,6 +133,7 @@ module avalon_st_sort_tb;
             pkt.push_back( word_t'( $urandom ) );
           
           gen_mbx.put(pkt);
+          total_n += 1;
         end
     end
   endtask
@@ -168,66 +176,54 @@ module avalon_st_sort_tb;
     end
   endtask
 
-  task automatic recv_and_check_pkt( pkt_t exp_pkt, int pkt_num );
+  task automatic receive_pkt( output pkt_t recv_pkt );
     begin
-      int beat_idx = 0;
-      bit eop_found = 0;
+      recv_pkt.delete();
 
       while( !( src_valid_o && src_ready_i && src_startofpacket_o ) )
         @( posedge clk );
 
-      while( !eop_found )
+      forever
         begin
           if( src_valid_o && src_ready_i )
             begin
-              if( beat_idx == 0 && !src_startofpacket_o )
-                begin
-                  $error("Error at %0t:\nSOP expected at beat 0 of packet #%0d", $time, pkt_num );
-                  pass_flag = 1'b0;
-                end
+              recv_pkt.push_back( src_data_o );
 
-              if( beat_idx < exp_pkt.size() )
-                begin
-                  if( src_data_o !== exp_pkt[beat_idx] )
-                    begin
-                      $error("Error at %0t:\nPacket #%0d beat[%0d]\ngot: %b\nexp: %b\n",
-                            $time, pkt_num, beat_idx, src_data_o, exp_pkt[beat_idx]);
-                      pass_flag = 1'b0;
-                    end
-                end
-              else
-                begin
-                  $error("Error at %0t:\nPacket #%0d\n- Extra word after position %0d\n",
-                        $time, pkt_num, exp_pkt.size());
-                  pass_flag = 1'b0;
-                end
-              
               if( src_endofpacket_o )
-                begin
-                  eop_found = 1'b1;
-                  if( beat_idx !== exp_pkt.size() - 1 )
-                    begin
-                      $error("Error at %0t:\nPacket #%0d\n- EOP at wrong position %0d\nexpected: %0d\n",
-                            $time, pkt_num, beat_idx, exp_pkt.size() - 1 );
-                      pass_flag = 1'b0;
-                    end
-                  break;
-                end
-              
-              beat_idx++;
+                break;
             end
-            
-            if( !eop_found )
-              @( posedge clk );
+          
+          @( posedge clk );
         end
 
-        @( posedge clk );
+      @( posedge clk );
     end
   endtask
 
-  task automatic send_inputs( mailbox #( pkt_t ) gen_mbx, mailbox #( pkt_t ) exp_mbx );
+  task automatic check_pkt( pkt_t recv_pkt, pkt_t exp_pkt, int pkt_num );
     begin
-      for( int test = 0; test < N; test++ )
+      if( recv_pkt.size() !== exp_pkt.size() )
+        begin
+          $error( "Error at %0t:\nPacket #%0d length mismatch\ngot: %0d\nexp: %0d",
+                  $time, pkt_num, recv_pkt.size(), exp_pkt.size() );
+          pass_flag = 1'b0;
+        end
+
+      for( int i = 0; i < exp_pkt.size(); i++ )
+        begin
+          if( recv_pkt[i] !== exp_pkt[i] )
+            begin
+              $error( "Error at %0t:\nPacket #%0d beat[%0d]\ngot: %b\nexp: %b",
+                      $time, pkt_num, i, recv_pkt[i], exp_pkt[i] );
+              pass_flag = 1'b0;
+            end
+        end
+    end
+  endtask
+
+  task automatic send_inputs( mailbox #( pkt_t ) gen_mbx, mailbox #( pkt_t ) exp_mbx, int total_n );
+    begin
+      for( int test = 0; test < total_n; test++ )
         begin
           pkt_t pkt;
           gen_mbx.get(pkt);
@@ -237,15 +233,16 @@ module avalon_st_sort_tb;
     end
   endtask
 
-  task automatic verify_outputs( mailbox #( pkt_t ) exp_mbx );
-    begin
-      for( int test = 0; test < N; test++ )
-        begin
-          pkt_t expected;
-          exp_mbx.get(expected);
-          recv_and_check_pkt(expected, test);
-        end
-    end
+  task automatic verify_outputs( mailbox #( pkt_t ) exp_mbx, int total_n );
+    for( int test = 0; test < total_n; test++ )
+      begin
+        pkt_t exp_pkt;
+        pkt_t recv_pkt;
+
+        exp_mbx.get(exp_pkt);
+        receive_pkt(recv_pkt);
+        check_pkt(recv_pkt, exp_pkt, test);
+      end
   endtask
 
   initial
@@ -254,11 +251,12 @@ module avalon_st_sort_tb;
       @( posedge clk );
       $display( "Simulation start" );
 
-      generate_tests(N, gen_mbx);
+      total_n = 0;
+      generate_tests(N, gen_mbx, total_n);
 
       fork
-        send_inputs(gen_mbx, exp_mbx);
-        verify_outputs(exp_mbx);
+        send_inputs(gen_mbx, exp_mbx, total_n);
+        verify_outputs(exp_mbx, total_n);
       join
       
       if( pass_flag )

@@ -32,7 +32,6 @@ module avalon_st_sort #(
   logic [DWIDTH-1:0] val_a;
   logic [DWIDTH-1:0] val_b;
   logic              swapped;
-  logic              sort_done;
 
   logic              mem_we;
   logic [ADDR_W-1:0] mem_waddr;
@@ -57,14 +56,15 @@ module avalon_st_sort #(
                      SORT_S,
                      SOURCE_S } state, next_state;
 
-  enum logic [2:0] { SORT_IDLE_S,
+  enum logic [3:0] { SORT_IDLE_S,
                      SORT_INIT_S,
                      SORT_RD_A_S,
                      SORT_RD_B_S,
                      SORT_CMP_S,
                      SORT_SWAP_W1_S,
                      SORT_SWAP_W2_S,
-                     SORT_NEXT_S } sort_state, next_sort_state;
+                     SORT_NEXT_S,
+                     SORT_DONE_S } sort_state, next_sort_state;
   
   // Main FSM states
   always_ff @( posedge clk_i )
@@ -99,7 +99,7 @@ module avalon_st_sort #(
 
         SORT_S:
           begin
-            if( sort_done )
+            if( sort_state == SORT_DONE_S )
               next_state = SOURCE_S;
           end
 
@@ -135,7 +135,7 @@ module avalon_st_sort #(
         
         SORT_INIT_S:    
           begin
-            next_sort_state = ( pkt_size <= 1 ) ? SORT_IDLE_S : SORT_RD_A_S;
+            next_sort_state = ( pkt_size <= 1 ) ? SORT_DONE_S : SORT_RD_A_S;
           end
         
         SORT_RD_A_S:    
@@ -173,59 +173,47 @@ module avalon_st_sort #(
             else if( ( pkt_size > 1 ) && ( i_cnt < ( pkt_size - 2 ) ) && swapped )
                 next_sort_state = SORT_INIT_S;
             else
-              next_sort_state = SORT_IDLE_S;
+              next_sort_state = SORT_DONE_S;
+          end
+        
+        SORT_DONE_S:
+          begin
+            next_sort_state = SORT_IDLE_S;
           end
         default: next_sort_state = SORT_IDLE_S;
       endcase
     end
 
-  assign sort_done = ( state == SORT_S ) && (
-                     ( ( sort_state == SORT_NEXT_S ) && ( next_sort_state == SORT_IDLE_S ) ) ||
-                     ( ( sort_state == SORT_INIT_S ) && ( pkt_size <= 1                  ) ) );
+  assign snk_ready_o         = ( ( state == IDLE_S ) || ( state == SINK_S ) ) ? ( 1'b1  ) : ( 1'b0 );
+  assign src_data_o          = ( state == SOURCE_S                          ) ? ( mem_q ) : ( 'x   );
+  assign src_startofpacket_o = src_sop_pipe;
+  assign src_endofpacket_o   = src_eop_pipe;
+  assign src_valid_o         = src_valid_pipe;
 
   always_comb
     begin
-      snk_ready_o         = 1'b0;
-      src_valid_o         = src_valid_pipe;
-      src_startofpacket_o = src_sop_pipe;
-      src_endofpacket_o   = src_eop_pipe;
-      src_data_o          = 'x;
-
       mem_we    = 1'b0;
       mem_waddr = '0;
       mem_wdata = '0;
-      mem_raddr = '0;
 
       case( state )
         IDLE_S:
           begin
-            snk_ready_o = 1'b1;
-            mem_we      = snk_valid_i;
-            mem_waddr   = pkt_cnt[ADDR_W-1:0];
-            mem_wdata   = snk_data_i;
+            mem_we    = snk_valid_i;
+            mem_waddr = pkt_cnt[ADDR_W-1:0];
+            mem_wdata = snk_data_i;
           end
         
         SINK_S:
           begin
-            snk_ready_o = 1'b1;
-            mem_we      = snk_valid_i;
-            mem_waddr   = pkt_cnt[ADDR_W-1:0];
-            mem_wdata   = snk_data_i;
+            mem_we    = snk_valid_i;
+            mem_waddr = pkt_cnt[ADDR_W-1:0];
+            mem_wdata = snk_data_i;
           end
-
-        SORT_S:
+        
+        SORT_S: 
           begin
             case( sort_state )
-              SORT_RD_A_S:
-                begin
-                  mem_raddr = j_cnt[ADDR_W-1:0];
-                end
-              
-              SORT_RD_B_S:
-                begin
-                  mem_raddr = j_cnt[ADDR_W-1:0] + 1'b1;
-                end
-              
               SORT_SWAP_W1_S:
                 begin
                   mem_we    = 1'b1;
@@ -239,29 +227,238 @@ module avalon_st_sort #(
                   mem_waddr = j_cnt[ADDR_W-1:0] + 1'b1;
                   mem_wdata = val_a;
                 end
-              default: ;
+              
+              default:
+                begin
+                  mem_we    = 1'b0;
+                  mem_waddr = '0;
+                  mem_wdata = '0;
+                end
+              
+            endcase
+          end
+        
+        default:
+          begin
+            mem_we    = 1'b0;
+            mem_waddr = '0;
+            mem_wdata = '0;
+          end
+        
+      endcase
+    end
+  
+  always_comb
+    begin
+      mem_raddr = '0;
+
+      case( state )
+        SORT_S:
+          begin
+            case( sort_state )
+              SORT_RD_A_S:
+                begin
+                  mem_raddr = j_cnt[ADDR_W-1:0];
+                end
+
+              SORT_RD_B_S:
+                begin
+                  mem_raddr = j_cnt[ADDR_W-1:0] + 1'b1;
+                end
+
+              default:
+                begin
+                  mem_raddr = '0;
+                end
+
             endcase
           end
         
         SOURCE_S:
           begin
-            mem_raddr   = pkt_cnt[ADDR_W-1:0];
-            src_data_o  = mem_q;
+            mem_raddr = pkt_cnt[ADDR_W-1:0];
           end
+
+        default:
+          begin
+            mem_raddr = '0;
+          end
+        
       endcase
+    end
+  
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        pkt_cnt <= '0;
+      else
+        case( state )
+          IDLE_S:
+            begin
+              if( snk_valid_i && snk_ready_o )
+                pkt_cnt <= ( snk_startofpacket_i && snk_endofpacket_i ) ? '0 : (ADDR_W+1)'(1);
+              else
+                pkt_cnt <= '0;
+            end
+
+          SINK_S:
+            begin
+              if( snk_valid_i && snk_ready_o )
+                pkt_cnt <= ( snk_endofpacket_i ) ? '0 : pkt_cnt + 1'b1;
+            end
+
+          SOURCE_S:
+            begin
+              if( src_ready_i && ( pkt_cnt < pkt_size ) )
+                pkt_cnt <= pkt_cnt + 1'b1;
+            end
+
+          default:
+            begin
+              pkt_cnt <= pkt_cnt;
+            end
+
+        endcase
+    end
+
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        pkt_size <= '0;
+      else
+        case( state )
+          IDLE_S:
+            begin
+              if( snk_valid_i && snk_ready_o && snk_startofpacket_i && snk_endofpacket_i )
+                pkt_size <= (ADDR_W+1)'(1);
+            end
+
+          SINK_S:
+            begin
+              if( snk_valid_i && snk_ready_o && snk_endofpacket_i )
+                pkt_size <= pkt_cnt + 1'b1;
+            end
+
+          default:
+            begin
+              pkt_size <= pkt_size;
+            end
+
+        endcase
     end
 
   always_ff @( posedge clk_i )
     begin
       if( srst_i )
         begin
-          pkt_cnt        <= '0;
-          pkt_size       <= '0;
-          i_cnt          <= '0;
-          j_cnt          <= '0;
-          val_a          <= '0;
-          val_b          <= '0;
-          swapped        <= 1'b0;
+          i_cnt <= '0;
+          j_cnt <= '0;
+        end
+      else
+        case( state )
+          IDLE_S:
+            begin
+              i_cnt <= '0;
+              j_cnt <= '0;
+            end
+          
+          SORT_S:
+            begin
+              case( sort_state )
+                SORT_INIT_S:
+                  begin
+                    i_cnt <= i_cnt;
+                    j_cnt <= '0;
+                  end
+
+                SORT_NEXT_S:
+                  begin
+                    if( j_cnt < ( pkt_size - i_cnt - 2 ) )
+                      begin
+                        j_cnt <= j_cnt + 1'b1;
+                        i_cnt <= i_cnt;
+                      end
+                    else
+                      begin
+                        i_cnt <= i_cnt + 1'b1;
+                        j_cnt <= j_cnt;
+                      end
+                  end
+
+                default:
+                  begin
+                    i_cnt <= i_cnt;
+                    j_cnt <= j_cnt;
+                  end
+
+              endcase
+            end
+          
+          default:
+            begin
+              i_cnt <= i_cnt;
+              j_cnt <= j_cnt;
+            end
+
+        endcase
+    end
+  
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        begin
+          val_a <= '0;
+        end
+      else
+        begin
+          if( ( state == SORT_S ) && ( sort_state == SORT_RD_B_S ) )
+            val_a <= mem_q;
+        end
+    end
+  
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        begin
+          val_b <= '0;
+        end
+      else
+        begin
+          if( ( state == SORT_S ) && ( sort_state == SORT_CMP_S ) )
+            val_b <= mem_q;
+        end
+    end
+  
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        begin
+          swapped <= 1'b0;
+        end
+      else if( state == SORT_S )
+        case( sort_state )
+          SORT_INIT_S:
+            begin
+              swapped <= 1'b0;
+            end
+
+          SORT_SWAP_W1_S:
+            begin
+              swapped <= 1'b1;
+            end
+
+          default:
+            begin
+              swapped <= swapped;
+            end
+
+        endcase
+    end
+  
+  always_ff @( posedge clk_i )
+    begin
+      if( srst_i )
+        begin
           src_valid_pipe <= 1'b0;
           src_sop_pipe   <= 1'b0;
           src_eop_pipe   <= 1'b0;
@@ -272,83 +469,12 @@ module avalon_st_sort #(
           src_sop_pipe   <= 1'b0;
           src_eop_pipe   <= 1'b0;
 
-          case( state )
-            IDLE_S:
-              begin
-                i_cnt <= '0;
-                if( snk_valid_i && snk_ready_o )
-                  begin
-                    if( snk_startofpacket_i && snk_endofpacket_i )
-                      begin
-                        pkt_size <= (ADDR_W+1)'(1);
-                        pkt_cnt  <= '0;
-                      end
-                    else
-                      pkt_cnt  <= (ADDR_W+1)'(1);
-                  end
-                else
-                  pkt_cnt <= '0;
-              end
-            SINK_S:
-              begin
-                if( snk_valid_i && snk_ready_o )
-                  begin
-                    pkt_cnt <= pkt_cnt + 1'b1;
-                    if( snk_endofpacket_i )
-                      begin
-                        pkt_size <= pkt_cnt + 1'b1;
-                        pkt_cnt  <= '0;
-                      end
-                  end
-              end
-
-            SORT_S:
-              begin
-                case( sort_state )
-                  SORT_INIT_S:
-                    begin
-                      j_cnt   <= '0;
-                      swapped <= 1'b0;
-                    end
-                  
-                  SORT_RD_B_S:
-                    begin
-                      val_a <= mem_q;
-                    end
-
-                  SORT_CMP_S:
-                    begin
-                      val_b <= mem_q;
-                    end
-                  
-                  SORT_SWAP_W1_S:
-                    begin
-                      swapped <= 1'b1;
-                    end
-                  
-                  SORT_NEXT_S:
-                    begin
-                      if( j_cnt < ( pkt_size - i_cnt - 2 ) )
-                        j_cnt <= j_cnt + 1'b1;
-                      else
-                        i_cnt <= i_cnt + 1'b1;
-                    end
-                  default: ;
-                endcase
-              end
-
-            SOURCE_S:
-              begin
-                if( src_ready_i )
-                  begin
-                    src_valid_pipe <= ( pkt_cnt < pkt_size );
-                    src_sop_pipe   <= ( pkt_cnt == 0 );
-                    src_eop_pipe   <= ( pkt_cnt == ( pkt_size - 1 ) );
-                    if( pkt_cnt < pkt_size )
-                      pkt_cnt <= pkt_cnt + 1'b1;
-                  end
-              end
-          endcase
+          if( ( state == SOURCE_S ) && src_ready_i )
+            begin
+              src_valid_pipe <= ( pkt_cnt < pkt_size          );
+              src_sop_pipe   <= ( pkt_cnt == 0                );
+              src_eop_pipe   <= ( pkt_cnt == ( pkt_size - 1 ) );
+            end
         end
     end
 endmodule
