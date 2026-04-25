@@ -43,10 +43,10 @@ class Scoreboard #(
     if ( tr.empty   !== ( stack.size() == 0         ) )         
       $error("[SCB] @%0t: EMPTY mismatch!   Got: %0b, Exp: %0b",
              $time, tr.empty, stack.size() == 0);
-    if ( tr.a_full  !== ( stack.size() >= ALMOST_FULL    ) )
+    if ( tr.a_full  !== ( stack.size() >= ALMOST_FULL  ) )
       $error("[SCB] @%0t: ALMOST_FULL mismatch!  Got: %0b, Exp: %0b (usedw=%0d, ALMOST_FULL=%0d)",
              $time, tr.a_full, stack.size() >= ALMOST_FULL, stack.size(), ALMOST_FULL);
-    if ( tr.a_empty !== ( stack.size() <= ALMOST_EMPTY    ) )
+    if ( tr.a_empty !== ( stack.size() <= ALMOST_EMPTY ) )
       $error("[SCB] @%0t: ALMOST_EMPTY mismatch! Got: %0b, Exp: %0b (usedw=%0d, ALMOST_EMPTY=%0d)",
              $time, tr.a_empty, stack.size() <= ALMOST_EMPTY, stack.size(), ALMOST_EMPTY);
     if ( tr.usedw   !== stack.size()                  )

@@ -21,11 +21,11 @@ class Transaction #( parameter DWIDTH = 16, parameter AWIDTH = 8 );
     this.srst = (rnd < 1);
     
     rnd = $urandom_range(0,99);
-    if (rnd < 10)
+    if( rnd < 10 )
       {this.wr, this.rd} = 2'b00;
-    else if (rnd < 40)
+    else if( rnd < 40 )
       {this.wr, this.rd} = 2'b01;
-    else if (rnd < 70)
+    else if( rnd < 70 )
       {this.wr, this.rd} = 2'b10;
     else
       {this.wr, this.rd} = 2'b11;

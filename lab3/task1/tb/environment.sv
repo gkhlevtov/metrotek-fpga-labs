@@ -39,8 +39,7 @@ class Environment #(
 
     wait( gen2drv.num() == 0 )
     
-    repeat(10)
-      @( v_if.drv_cb );
+    @( v_if.drv_cb );
 
     wait( mon2scb.num() == 0 );
 
