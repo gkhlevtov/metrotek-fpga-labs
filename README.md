@@ -28,3 +28,6 @@ Repository for STC Metrotek labs.
 * **Task №1** - [FIFO](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab2/task1)
 
 * **Task №2** - [Avalon-ST sort](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab2/task2)
+
+## Lab №3
+* **Task №1** - [LIFO](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task1)
