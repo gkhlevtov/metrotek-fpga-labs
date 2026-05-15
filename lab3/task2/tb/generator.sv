@@ -67,6 +67,20 @@ class Generator #(
       end
   endtask
 
+  task send_invalid_packet( int len, bit [CHANNEL_W-1:0] chan = $urandom() );
+    for( int i = 0; i < len; i++ )
+      begin
+        bit                  sop;
+        bit                  eop;
+        bit [IN_EMPTY_W-1:0] emp;
+        
+        sop = ( i == 0 );
+        eop = ( i == len - 1 );
+        emp = ( eop ) ? ( $urandom_range(0, IN_DATA_W/8 - 1) ) : ( 0 );
+        send_beat(0, sop, eop, emp, chan);
+      end
+  endtask
+
   task test_empty();
     $display("[GEN] @%0t: Scenario - Empty test", $time);
 
@@ -155,6 +169,12 @@ class Generator #(
     send_beat(1, 0, 1, 1, 1);
   endtask
 
+  task test_invalid_sop();
+    $display("[GEN] @%0t: Scenario - Invalid SOP with valid=0", $time);
+    send_invalid_packet(N);
+    send_packet(N);
+endtask
+
   task run_random( int count );
     $display("[GEN] @%0t: Scenario - Random tests", $time);
     while( count != 0 )
@@ -192,6 +212,9 @@ class Generator #(
     test_short_packets();
     send_reset();
 
+    test_invalid_sop();
+    send_reset();
+    
     test_ready();
     send_reset();
 
