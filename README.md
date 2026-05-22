@@ -31,3 +31,5 @@ Repository for STC Metrotek labs.
 
 ## Lab №3
 * **Task №1** - [LIFO](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task1)
+* **Task №2** - [Stream Interface Width Converter](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task2)
+* **Task №3** - [Stream Interface Demultiplexer](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task3)
