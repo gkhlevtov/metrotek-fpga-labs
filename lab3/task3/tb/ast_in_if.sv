@@ -1,0 +1,27 @@
+interface ast_in_if #(
+  parameter int DATA_W    = 64,
+  parameter int EMPTY_W   = $clog2(DATA_W/8) ? $clog2(DATA_W/8) : 1,
+  parameter int CHANNEL_W = 8,
+  parameter int DIR_W     = 2
+)(
+  input bit clk
+);
+  logic                 srst;
+  logic [DIR_W-1:0    ] dir;
+  logic [DATA_W-1:0   ] data;
+  logic                 startofpacket;
+  logic                 endofpacket;
+  logic                 valid;
+  logic [EMPTY_W-1:0  ] empty;
+  logic [CHANNEL_W-1:0] channel;
+  logic                 ready;
+
+  clocking drv_cb @( posedge clk );
+    output  srst, dir, data, startofpacket, endofpacket, valid, empty, channel;
+    input   ready;
+  endclocking
+
+  clocking mon_cb @( posedge clk );
+    input srst, dir, data, startofpacket, endofpacket, valid, empty, channel, ready;
+  endclocking
+endinterface
