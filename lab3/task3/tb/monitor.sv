@@ -1,6 +1,6 @@
 class Monitor #(
   parameter int DATA_W    = 64,
-  parameter int EMPTY_W   = $clog2(DATA_W/8) ? $clog2(DATA_W/8) : 1,
+  parameter int EMPTY_W   = ( $clog2(DATA_W/8) ) ? ( $clog2(DATA_W/8) ) : ( 1 ),
   parameter int CHANNEL_W = 8,
   parameter int DIR_W     = 2
 );
@@ -36,9 +36,7 @@ class Monitor #(
 
             mon2scb.put( tr );
             $display("[MON %0d] @%0t captured beat: sop=%b eop=%b empty=%0d ch=%0d\ndata=%h",
-                    port_id, $time,
-                    tr.startofpacket, tr.endofpacket,
-                    tr.empty, tr.channel, tr.data);
+                    port_id, $time, tr.startofpacket, tr.endofpacket, tr.empty, tr.channel, tr.data);
           end
         @( v_if.mon_cb );
     end

@@ -5,10 +5,10 @@ class Scoreboard #(
   parameter int TX_DIR    = 4,
   parameter int DIR_W     = ( TX_DIR == 1 ) ? ( 1 ) : ( $clog2(TX_DIR) )
 );
-  AST_Transaction #( DATA_W, EMPTY_W, CHANNEL_W, DIR_W ) expected_tr [TX_DIR][$];
+  AST_Transaction #( DATA_W, EMPTY_W, CHANNEL_W, DIR_W ) expected_tr [TX_DIR-1:0][$];
 
-  bit [CHANNEL_W-1:0] sop_channel [TX_DIR];
-  bit                 in_packet   [TX_DIR];
+  logic [CHANNEL_W-1:0] sop_channel [TX_DIR-1:0];
+  logic                 in_packet   [TX_DIR-1:0];
 
   int error_count = 0;
   int check_count = 0;
@@ -45,7 +45,7 @@ class Scoreboard #(
       begin
         if ( expected_tr[p].size() > 0 )
           begin
-            $error("[SCB] @%0t: LOST PACKETS on port %0d — %0d beat(s) sent but never received by DUT output!",
+            $error("[SCB] @%0t: LOST PACKETS on port %0d - %0d beat(s) sent but never received by DUT output!",
                     $time, p, expected_tr[p].size());
             error_count++;
             expected_tr[p] = {};
@@ -87,7 +87,7 @@ class Scoreboard #(
       begin
         if ( in_packet[port] )
           begin
-            $error("[SCB] @%0t port %0d: Unexpected SOP — previous packet not finished!",
+            $error("[SCB] @%0t port %0d: Unexpected SOP - previous packet not finished!",
                    $time, port);
             error_count++;
           end
@@ -104,7 +104,7 @@ class Scoreboard #(
     if( tr.startofpacket )
       if( tr.channel !== exp_tr.channel )
         begin
-          $error("[SCB] @%0t beat #%0d port %0d: CHANNEL mismatch! Got=%0d Exp=%0d",
+          $error("[SCB] @%0t beat #%0d port %0d: CHANNEL mismatch! Got=%0b Exp=%0b",
                   $time, check_count, port, tr.channel, exp_tr.channel);
           beat_ok = 0;
         end
@@ -144,7 +144,7 @@ class Scoreboard #(
     if( !beat_ok )
       error_count++;
     else
-      $display("[SCB] @%0t beat #%0d port %0d: PASSED  sop=%b eop=%b empty=%0d",
+      $display("[SCB] @%0t beat #%0d port %0d: PASSED sop=%b eop=%b empty=%0d",
                 $time, check_count, port, tr.startofpacket, tr.endofpacket, tr.empty);
   endtask
 
@@ -161,13 +161,6 @@ class Scoreboard #(
             total_pending += expected_tr[p].size();
           end
       end
-
-    /*
-    for (int p = 0; p < TX_DIR; p++)
-      begin
-        $display("[DEBUG] Port %0d pending beats = %0d", p, expected_tr[p].size());
-      end
-    */
 
     $display("\n==============================================");
     $display("\tAST DMX TB - FINAL REPORT");

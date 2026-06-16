@@ -2,7 +2,7 @@ module ast_dmx_tb;
   localparam int DATA_W    = 64;
   localparam int CHANNEL_W = 8;
   localparam int TX_DIR    = 4;
-  localparam int PACKETS   = 10;
+  localparam int PACKETS   = 20;
 
   localparam int EMPTY_W   = ( $clog2(DATA_W/8) ) ? ( $clog2(DATA_W/8) ) : ( 1 );
   localparam int DIR_W     = ( TX_DIR == 1      ) ? ( 1 ) : ( $clog2(TX_DIR)   );
@@ -20,22 +20,22 @@ module ast_dmx_tb;
     .EMPTY_W   ( EMPTY_W   ),
     .CHANNEL_W ( CHANNEL_W ),
     .DIR_W     ( DIR_W      )
-  ) in_if  ( clk );
+  ) in_if ( clk );
 
   ast_out_if #( 
     .DATA_W    ( DATA_W    ),
     .EMPTY_W   ( EMPTY_W   ),
     .CHANNEL_W ( CHANNEL_W )
   )
-  out_if [TX_DIR] ( clk );
+  out_if [TX_DIR-1:0] ( clk );
 
-  logic [DATA_W-1:0]    data_o    [TX_DIR];
-  logic                 sop_o     [TX_DIR];
-  logic                 eop_o     [TX_DIR];
-  logic                 valid_o   [TX_DIR];
-  logic [EMPTY_W-1:0]   empty_o   [TX_DIR];
-  logic [CHANNEL_W-1:0] channel_o [TX_DIR];
-  logic                 ready_i   [TX_DIR];
+  logic [DATA_W-1:0]    data_o    [TX_DIR-1:0];
+  logic                 sop_o     [TX_DIR-1:0];
+  logic                 eop_o     [TX_DIR-1:0];
+  logic                 valid_o   [TX_DIR-1:0];
+  logic [EMPTY_W-1:0]   empty_o   [TX_DIR-1:0];
+  logic [CHANNEL_W-1:0] channel_o [TX_DIR-1:0];
+  logic                 ready_i   [TX_DIR-1:0];
 
   generate
     for( genvar i = 0; i < TX_DIR; i++ )
@@ -50,11 +50,13 @@ module ast_dmx_tb;
       end
   endgenerate
 
+  /*
   generate
     for( genvar i = 0; i < TX_DIR; i++ )
       assign out_if[i].ready = 1'b1;
   endgenerate
-
+  */
+  
   ast_dmx #(
     .DATA_WIDTH          ( DATA_W              ),
     .CHANNEL_WIDTH       ( CHANNEL_W           ),

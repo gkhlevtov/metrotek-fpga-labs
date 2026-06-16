@@ -1,6 +1,6 @@
 interface ast_out_if #(
   parameter int DATA_W    = 64,
-  parameter int EMPTY_W   = $clog2(DATA_W/8) ? $clog2(DATA_W/8) : 1,
+  parameter int EMPTY_W   = ( $clog2(DATA_W/8) ) ? ( $clog2(DATA_W/8) ) : ( 1 ),
   parameter int CHANNEL_W = 8
 )(
   input bit clk
@@ -15,5 +15,9 @@ interface ast_out_if #(
 
   clocking mon_cb @( posedge clk );
     input data, startofpacket, endofpacket, valid, empty, channel, ready;
+  endclocking
+
+  clocking drv_cb @( posedge clk );
+    output ready;
   endclocking
 endinterface

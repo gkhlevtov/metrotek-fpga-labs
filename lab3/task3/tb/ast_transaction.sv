@@ -1,20 +1,20 @@
 class AST_Transaction #(
   parameter int DATA_W    = 64,
-  parameter int EMPTY_W   = $clog2(DATA_W/8) ? $clog2(DATA_W/8) : 1,
+  parameter int EMPTY_W   = ( $clog2(DATA_W/8) ) ? ( $clog2(DATA_W/8) ) : ( 1 ),
   parameter int CHANNEL_W = 8,
   parameter int DIR_W     = 2
 );
-  bit                    srst;
-  bit [DIR_W-1:0    ]    dir;
-  bit [DATA_W-1:0   ]    data;
-  bit                    startofpacket;
-  bit                    endofpacket;
-  bit                    valid;
-  bit [EMPTY_W-1:0  ]    empty;
-  bit [CHANNEL_W-1:0]    channel;
+  logic                 srst;
+  logic [DIR_W-1:0    ] dir;
+  logic [DATA_W-1:0   ] data;
+  logic                 startofpacket;
+  logic                 endofpacket;
+  logic                 valid;
+  logic [EMPTY_W-1:0  ] empty;
+  logic [CHANNEL_W-1:0] channel;
 
   function void randomize_manual();
-    for ( int i = 0; i < DATA_W/8; i++ )
+    for( int i = 0; i < DATA_W/8; i++ )
       data[i*8 +: 8] = $urandom();
   endfunction
 
