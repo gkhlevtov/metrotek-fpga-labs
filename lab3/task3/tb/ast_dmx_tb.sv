@@ -2,7 +2,7 @@ module ast_dmx_tb;
   localparam int DATA_W    = 64;
   localparam int CHANNEL_W = 8;
   localparam int TX_DIR    = 4;
-  localparam int PACKETS   = 20;
+  localparam int PACKETS   = 40;
 
   localparam int EMPTY_W   = ( $clog2(DATA_W/8) ) ? ( $clog2(DATA_W/8) ) : ( 1 );
   localparam int DIR_W     = ( TX_DIR == 1      ) ? ( 1 ) : ( $clog2(TX_DIR)   );

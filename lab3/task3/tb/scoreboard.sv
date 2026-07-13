@@ -28,10 +28,10 @@ class Scoreboard #(
   );
     int port = tr.dir;
     AST_Transaction #( DATA_W, EMPTY_W, CHANNEL_W, DIR_W ) exp = tr.copy();
-    /*
+    
     $display("[SCB ADD] port=%0d, data=%h, sop=%b, eop=%b, empty=%0d",
               port, tr.data, tr.startofpacket, tr.endofpacket, tr.empty);
-    */
+    
 
     if( tr.startofpacket )
       sop_channel[port] = tr.channel;
@@ -85,10 +85,10 @@ class Scoreboard #(
 
     if( tr.startofpacket )
       begin
-        if ( in_packet[port] )
+        if( in_packet[port] )
           begin
             $error("[SCB] @%0t port %0d: Unexpected SOP - previous packet not finished!",
-                   $time, port);
+                    $time, port);
             error_count++;
           end
         in_packet[port] = 1;
@@ -147,6 +147,17 @@ class Scoreboard #(
       $display("[SCB] @%0t beat #%0d port %0d: PASSED sop=%b eop=%b empty=%0d",
                 $time, check_count, port, tr.startofpacket, tr.endofpacket, tr.empty);
   endtask
+
+  function bit has_pending_data();
+    for( int p = 0; p < TX_DIR; p++ )
+      begin
+        if( expected_tr[p].size() > 0 )
+        begin
+          return 1'b1;
+        end
+      end
+    return 1'b0;
+  endfunction
 
   function void final_report();
     int total_pending = 0;

@@ -82,11 +82,21 @@ class Environment #(
   endtask
 
   task drain();
+    int timeout = 20;
+
     wait( gen2drv.num() == 0 );
 
-    repeat(5)
-      @( v_in_if.drv_cb );
-
+    while( ( scb.has_pending_data() ) && ( timeout > 0 ) )
+      begin
+        @( v_in_if.drv_cb );
+        timeout--;
+      end
+    if( timeout == 0 )
+      begin
+        $error("[ENV] drain: TIMEOUT waiting for pending data!");
+        //$fatal(1, "Timeout in drain");
+      end
+    
     wait( mon2scb.num() == 0 );
   endtask
 
@@ -110,18 +120,71 @@ class Environment #(
 
     $display("[ENV] @%0t: === Phase 1: ready=1 always ===", $time);
     ready_prob = 100;
-    gen.run( num_packets, 0 );
+
+    gen.send_reset();
+    gen.send_idle(5);
+
+    gen.test_directions();
+    drain();
+    gen.send_reset();
+
+    gen.test_valid_interruption();
+    drain();
+    gen.send_reset();
+    
+    gen.test_invalid_packets();
+    drain();
+    gen.send_reset();
+
+    gen.test_invalid_sop_dir();
+    drain();
+    gen.send_reset();
+
+    //gen.test_max_len_packet();
+    //drain();
+    //gen.send_reset();
+    
+    gen.test_empty();
+    drain();
+    gen.send_reset();
+
+    gen.test_random( num_packets );
+    drain();
+    gen.send_reset();
     drain();
     
     $display("[ENV] @%0t: === Phase 2: random ready=1 ===", $time);
     ready_prob = 50;
-    gen.run( num_packets, 1 );
+    gen.send_reset();
+    gen.send_idle(15);
+    
+    gen.test_directions();
+    drain();
+    gen.send_reset();
+    
+    gen.test_valid_interruption();
+    drain();
+    gen.send_reset();
+
+    gen.test_invalid_packets();
+    drain();
+    gen.send_reset();
+
+    gen.test_invalid_sop_dir();
+    drain();
+    gen.send_reset();
+    
+    gen.test_empty();
+    drain();
+    gen.send_reset();
+    drain();
+    
+    gen.test_random( num_packets );
+    drain();
+    gen.send_reset();
     drain();
     
     sim_done = 1;
-    ready_prob = 100;
-    repeat(5)
-      @( v_in_if.drv_cb );
 
     disable fork;
 

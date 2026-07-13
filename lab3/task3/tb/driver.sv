@@ -18,11 +18,12 @@ class Driver #(
   task run();
     AST_Transaction #( DATA_W, EMPTY_W, CHANNEL_W, DIR_W ) tr;
 
+    @( v_if.drv_cb );
+    
     forever
       begin
         gen2drv.get( tr );
 
-        @( v_if.drv_cb );
         v_if.drv_cb.srst          <= tr.srst;
         v_if.drv_cb.dir           <= tr.dir;
         v_if.drv_cb.data          <= tr.data;
@@ -32,16 +33,15 @@ class Driver #(
         v_if.drv_cb.empty         <= tr.empty;
         v_if.drv_cb.channel       <= tr.channel;
         
+        @( v_if.drv_cb );
         /*
         $display("[DRV] @%0t: valid=%b sop=%b eop=%b empty=%0d ch=%0d dir=%0d data=%h",
           $time, tr.valid, tr.startofpacket, tr.endofpacket, tr.empty, tr.channel, tr.dir, tr.data);
         */
-
         if( tr.valid && !tr.srst )
           begin
             while( !v_if.drv_cb.ready )
               begin
-                v_if.drv_cb.valid <= 0;
                 @( v_if.drv_cb );
               end
           end

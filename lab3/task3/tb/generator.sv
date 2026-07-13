@@ -50,20 +50,29 @@ class Generator #(
 
   task send_reset();
     $display("[GEN] @%0t: Reset issued", $time);
-    //scb.reset();
+    scb.reset();
     send_beat(0, 0, 0, 0, 0, 0, 1);
   endtask
 
   task send_packet(
     int                 len,
-    bit [CHANNEL_W-1:0] chan = $urandom(),
-    bit [DIR_W-1:0    ] dir  = $urandom()
+    bit [CHANNEL_W-1:0] chan      = $urandom(),
+    bit [DIR_W-1:0    ] dir       = $urandom(),
+    int                 idle_prob = 30
   );
+    int               idle_cnt;
+    bit               sop;
+    bit               eop;
+    bit [EMPTY_W-1:0] emp;
+
     for( int i = 0; i < len; i++ )
       begin
-        bit               sop;
-        bit               eop;
-        bit [EMPTY_W-1:0] emp;
+        if( ( i > 0 ) && ( $urandom_range(0, 99) < idle_prob ) )
+          begin
+            idle_cnt = $urandom_range(1, 3);
+            repeat( idle_cnt )
+              send_beat(0, 0, 0, 0, 0, 0);
+          end
 
         sop = ( i == 0       );
         eop = ( i == len - 1 );
@@ -94,7 +103,7 @@ class Generator #(
     $display("[GEN] @%0t: Scenario - Directions test", $time);
     for( int p = 0; p < TX_DIR; p++ )
       begin
-        send_packet( $urandom_range(1, 20), $urandom(), p );
+        send_packet( $urandom_range(1, 20), $urandom(), p, 0 );
         send_idle(1);
       end
   endtask
@@ -113,7 +122,7 @@ class Generator #(
 
   task test_max_len_packet();
     $display("[GEN] @%0t: Scenario - Max len packet test", $time);
-    send_packet(65536, 1, $urandom_range(TX_DIR - 1));
+    send_packet(65536, 1, $urandom_range(TX_DIR - 1), 0);
   endtask
   
   /*
@@ -132,7 +141,7 @@ class Generator #(
       begin
         send_beat(0, 1, 0, 0, 1, p);
         send_idle(2);
-        send_packet(4, 1, p);
+        send_packet(4, 1, p, 0);
         send_idle(2);
       end
     
@@ -164,7 +173,7 @@ class Generator #(
     $display("[GEN] @%0t: Scenario - Random test (%0d packets)", $time, num_packets);
     repeat( num_packets )
       begin
-        send_packet( $urandom_range(1, 20), $urandom(), $urandom() );
+        send_packet( $urandom_range(1, 20), $urandom(), $urandom(), 30 );
         send_idle( $urandom_range(0, 3) );
       end
   endtask
