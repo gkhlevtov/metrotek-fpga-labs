@@ -10,12 +10,14 @@
 
 ## Таблица обнаруженных ошибок
 
-| № | Название бага | Симуляционное время первого воспроизведения | Сообщение в transcript  |
-| -- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1  | Игнорирование задания при length = `BYTE_CNT` (8 байт) | **T = 1605 ps**  | `Error: [ENV] drain: TIMEOUT waiting for job completion (target=2, completed=1)`<br />`Time: 1605 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 67`                  |
-| 2  | Нулевой `wr_byteenable` для полностью заполненного последнего слова | **T = 1755 ps** | `Error: [SCB] @1755 beat #12: BYTEENABLE mismatch! addr=3ff Got=00000000 Exp=11111111`<br />`Time: 1755 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 158` |
-| 3  | `writedata = x` при переполнении байта (`0xFF -> 0x00`) | **T = 3815 ps** | `Error: [SCB] @3815 beat #33: WRITEDATA mismatch! addr=3fe byte=7 Got=xx Exp=00` <br /> `Time: 3815 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 167`  |
-| 4  | Некорректные данные записи при выполнении длинных заданий (смещение и накопление ошибок) | **T = 4495 ps** | `Error: [SCB] @4495 beat #74: WRITEDATA mismatch! addr=005 byte=0 Got=3c Exp=72` <br /> `Time: 4495 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 167` <br /> `...` |
+| № | Название бага                                                                                                                                            | Симуляционное время первого воспроизведения | Сообщение в transcript                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | Игнорирование задания при length =`BYTE_CNT` (8 байт)                                                                                   | **T = 1605 ps**                                                               | `Error: [ENV] drain: TIMEOUT waiting for job completion (target=2, completed=1)`<br />`Time: 1605 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 67`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2  | Нулевой`wr_byteenable` для полностью заполненного последнего слова                                                   | **T = 1755 ps**                                                               | `Error: [SCB] @1755 beat #12: BYTEENABLE mismatch! addr=3ff Got=00000000 Exp=11111111`<br />`Time: 1755 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 158`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 3  | `writedata = x` при переполнении байта (`0xFF -> 0x00`)                                                                                      | **T = 3815 ps**                                                               | `Error: [SCB] @3815 beat #33: WRITEDATA mismatch! addr=3fe byte=7 Got=xx Exp=00` <br /> `Time: 3815 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 167`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 4  | Некорректные данные записи при выполнении длинных заданий (смещение и накопление ошибок) | **T = 4495 ps**                                                               | `Error: [SCB] @4495 beat #74: WRITEDATA mismatch! addr=005 byte=0 Got=3c Exp=72` <br /> `Time: 4495 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: scoreboard.sv Line: 167` <br /> `...`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 5  | Пропуск фазы записи при`readLatency` ≥ 60                                                                                                     | **T = 33625 ps**                                                              | `Error: [ENV] drain: TIMEOUT waiting for job completion (target=81, completed=80)` <br /> `Time: 33625 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68` <br /> `Error: [ENV] drain: TIMEOUT waiting for job completion (target=82, completed=81)` <br /> `Time: 35155 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68` <br /> `Error: [ENV] drain: TIMEOUT waiting for job completion (target=83, completed=82)` <br /> `Time: 36685 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68` <br /> `Error: [ENV] drain: TIMEOUT waiting for job completion (target=84, completed=83)` <br /> `Time: 38215 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68` |
+
 ---
 
 ## Детальное описание ошибок
@@ -40,7 +42,7 @@ Time: 1605 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: enviro
 
 ---
 
-### Баг №2: Нулевой `​wr_byteenable`​ для полностью заполненного последнего слова
+### Баг №2: Нулевой `wr_byteenable` для полностью заполненного последнего слова
 
 **Описание:**
 Когда последнее слово задания задействовано целиком (маска должна быть `11111111`), модуль выставляет `wr_byteenable` = `8'b00000000`. Ошибка возникает как на максимальном адресе (`0x3ff`), так и на других адресах, если последнее слово полностью входит в диапазон.
@@ -88,7 +90,7 @@ Time: 3815 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: 
 
 **Ожидаемое поведение:** Все слова должны быть прочитаны, инкрементированы и записаны по тем же адресам.
 
-**Фактическое поведение:** Данные записываются с ошибками (выполняется запись по неверным адресам - смещение)
+**Фактическое поведение:** Данные записываются с ошибками (выполняется запись по неверным адресам - смещение).
 
 **Сообщения в transcript:**
 
@@ -110,5 +112,34 @@ Time: 4495 ps  Scope: byte_inc_pkg.scoreboard.scoreboard__1.check_beat_wr File: 
 ```
 
 **Время первого воспроизведения:** `T = 4495 ps`
+
+---
+
+### Баг №5: Пропуск фазы записи при `readLatency` ≥ 60
+
+**Описание:**
+При работе с фиксированной readLatency ≥ 60 модуль корректно выполняет фазу чтения, но не выставляет запрос на запись: сигнал `wr_write` не активируется, `wr_writedata`/`wr_byteenable` не формируются.
+
+**Ожидаемое поведение:** После получения ответа от модуля памяти DUT должен выполнить инкремент байтов и выставить запрос на запись по тому же адресу, после чего снять `waitrequest`.
+
+**Фактическое поведение:** Ответ от модуля памяти принят корректно (`[SCB] beat #N: read ... PASSED`), но `[WR_MON] captured write...` не появляется.
+
+**Сообщения в transcript:**
+
+```
+Error: [ENV] drain: TIMEOUT waiting for job completion (target=81, completed=80)
+Time: 33625 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68
+...
+Error: [ENV] drain: TIMEOUT waiting for job completion (target=82, completed=81)
+Time: 35155 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68
+...
+Error: [ENV] drain: TIMEOUT waiting for job completion (target=83, completed=82)
+Time: 36685 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68
+...
+Error: [ENV] drain: TIMEOUT waiting for job completion (target=84, completed=83)
+Time: 38215 ps  Scope: byte_inc_pkg.environment.environment__1.drain File: environment.sv Line: 68
+```
+
+**Время первого воспроизведения:** `T = 33625 ps`
 
 ---

@@ -77,13 +77,32 @@ class environment #(
     max_len   = BYTE_CNT * 2;
     base_addr = ( 1 << ADDR_WIDTH ) - 2;
     
-    $display( "[ENV] @%0t:ByteEnable test: base_addr=%h, lengths 1..%0d ===",
+    $display( "[ENV] @%0t:ByteEnable test: base_addr=%h, lengths 1..%0d",
               $time, base_addr, max_len );
 
     for( int len = 1; len <= max_len; len++ )
       begin
         gen.send_job( base_addr, ADDR_WIDTH'( len ) );
         drain();
+      end
+  endtask
+
+  task run_latency_test();
+    int unsigned bytes_per_job;
+
+    bytes_per_job = 4;
+
+    for( int unsigned lat = 0; lat <= 63; lat++ )
+      begin
+        $display( "[ENV] @%0t: Latency test: latency = %0d (%0d)",
+                  $time, lat, ( lat + 1 ) );
+        slv.set_rd_latency_range( lat, lat );
+
+        gen.send_job(ADDR_WIDTH'( lat ), ADDR_WIDTH'( bytes_per_job ) );
+        drain();
+        drv.reset();
+
+        @( v_ctrl_if.drv_cb );
       end
   endtask
 
@@ -130,6 +149,8 @@ class environment #(
 
     gen.test_max_length();
     drain();
+
+    run_latency_test();
     
     $display( "[ENV] @%0t: === Phase 2: random waitrequest and variable latency ===", $time );
     slv.set_rd_waitrequest_pct( 30 );
