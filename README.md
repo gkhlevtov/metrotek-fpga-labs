@@ -37,3 +37,6 @@ Repository for STC Metrotek labs.
 * **Task №3** - [Stream Interface Demultiplexer](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task3)
 
 * **Task №4** - [Byte incrementor](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/lab3/task4)
+
+## Exam
+* [Packet merge](https://github.com/gkhlevtov/metrotek-fpga-labs/tree/main/exam)
