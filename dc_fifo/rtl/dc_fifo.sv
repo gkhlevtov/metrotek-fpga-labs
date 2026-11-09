@@ -186,7 +186,7 @@ module dc_fifo #(
   assign rd_ptr_bin_next = rd_ptr_bin + ( ( rd_allowed ) ? ( 1'd1 ) : ( 1'd0 ) );
   
   // ram reading pointer
-  assign ram_rd_ptr = ( SHOWAHEAD && !REGISTER_OUTPUT ) ? ( rd_ptr_bin_next[AWIDTH-1:0] ) : ( rd_ptr_bin[AWIDTH-1:0] );
+  assign ram_rd_ptr = ( SHOWAHEAD && REGISTER_OUTPUT ) ? ( rd_ptr_bin_next[AWIDTH-1:0] ) : ( rd_ptr_bin[AWIDTH-1:0] );
   	
   // ram output
   assign ram_data_o = memory[ram_rd_ptr];
@@ -229,7 +229,7 @@ module dc_fifo #(
           begin
            if( !rd_rst )
              data_reg <= '0;
-           else if( !empty_o )
+           else 
              data_reg <= ram_data_o;
           end
         assign data_o = data_reg;
