@@ -7,6 +7,8 @@ class environment #(
 );
   localparam FIFO_SIZE = 2 ** AWIDTH;
   
+  typedef logic [DWIDTH-1:0] word_t;
+
   generator    #( DWIDTH    ) gen;
   wr_driver    #( DWIDTH    ) wr_drv;
   rd_driver    #( DWIDTH    ) rd_drv;
@@ -17,9 +19,9 @@ class environment #(
   
   mailbox #( word_t ) gen2drv;
 
-  virtual wr_if  #( DWIDTH    ) wr_vif;
-  virtual rd_if  #( DWIDTH    ) rd_vif;
-  virtual rst_if #( RESET_LOW ) rst_vif;
+  virtual wr_if  #( DWIDTH, AWIDTH ) wr_vif;
+  virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif;
+  virtual rst_if #( RESET_LOW      ) rst_vif;
 
   // Run settings
   int unsigned num_random = 100;
@@ -27,42 +29,44 @@ class environment #(
   time         reset_time = 10ns;
 
   function new(
-    virtual wr_if  #( DWIDTH    ) wr_vif;
-    virtual rd_if  #( DWIDTH    ) rd_vif;
-    virtual rst_if #( RESET_LOW ) rst_vif;
+    virtual wr_if  #( DWIDTH, AWIDTH ) wr_vif,
+    virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif,
+    virtual rst_if #( RESET_LOW      ) rst_vif
   );
-    this.wr_if  = wr_vif;
-    this.rd_if  = rd_vif;
-    this.rst_if = rst_vif;
+    this.wr_vif  = wr_vif;
+    this.rd_vif  = rd_vif;
+    this.rst_vif = rst_vif;
     
-    gen2drv     = new();
-    gm          = new(FIFO_SIZE);
+    gen2drv      = new();
+    gm           = new(FIFO_SIZE);
     
-    gen         = new( gen2drv    );
-    wr_drv      = new( wr_vif, gm );
-    rd_drv      = new( rd_vif     );
-    rst_drv     = new( rst_vif    )
-    wr_mon      = new( wr_vif, gm );
-    rd_mon      = new( rd_vif, gm );
+    gen          = new( gen2drv    );
+    wr_drv       = new( wr_vif, gm );
+    rd_drv       = new( rd_vif     );
+    rst_drv      = new( rst_vif    );
+    wr_mon       = new( wr_vif, gm );
+    rd_mon       = new( rd_vif, gm );
   endfunction
 
   task drain();
     int timeout = 150;
     int target;
+    int completed;
 
     wait( gen2drv.num() == 0 );
 
-    target = gm.pushed;
-
-    while( ( checked < target ) && ( timeout > 0 ) )
+    target    = gm.pushed;
+    completed = gm.checked;
+    
+    while( ( completed < target ) && ( timeout > 0 ) )
       begin
-        @( wr_if.clk );
+        @( wr_vif.clk );
         timeout--;
       end
 
     if( timeout == 0 )
       begin
-        $error("[ENV] drain: TIMEOUT (target=%0d, completed=%0d)", target, checked);
+        $error("[ENV] drain: TIMEOUT (target=%0d, completed=%0d)", target, completed);
       end
   endtask
   

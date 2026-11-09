@@ -31,7 +31,7 @@ class golden_model #(
     if( q.size == 0 )
       begin
         errors++;
-        $error("[@%0t][GM] UNDERFLOW: reading from empty queue");
+        $error("[@%0t][GM] UNDERFLOW: reading from empty queue", $time );
 	return;
       end       
     
@@ -40,7 +40,7 @@ class golden_model #(
     if( exp !== got )
       begin
         errors++;
-	$error("[@%0t][GM] DATA MISMATCH #%0d:\nexp: %0d, got: %0d\n", checked, exp, got);
+	$error("[@%0t][GM] DATA MISMATCH #%0d:\nexp: %0d, got: %0d\n", $time, checked, exp, got);
       end
 
     checked++;
@@ -56,6 +56,6 @@ class golden_model #(
     if( errors == 0 )
       $display("TEST PASSED: checked %0d words\n", checked);
     else
-      $display("TEST FAILED: %0d errors\n", erorrs);
+      $display("TEST FAILED: %0d errors\n", errors);
   endfunction
 endclass

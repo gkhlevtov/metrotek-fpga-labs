@@ -7,12 +7,12 @@ class wr_monitor #(
   function new(
     virtual wr_if #( DWIDTH ) vif,
     golden_model              gm
-  )
+  );
     this.vif = vif;
     this.gm  = gm;
   endfunction
    
-  task run()
+  task run();
     forever
       begin
         @( posedge vif.clk );

@@ -9,7 +9,7 @@ class rd_driver #(
     this.vif = vif;
   endfunction
 
-  task run()
+  task run();
     forever
       begin
         @( posedge vif.clk )

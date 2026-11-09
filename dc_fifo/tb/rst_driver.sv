@@ -7,7 +7,7 @@ class rst_driver #(
     this.vif = vif;
   endfunction
 
-  task pulse_rst( int hold_time )
+  task pulse_rst( int hold_time );
     $display( "[@%0t][RST_DRV] reset asserted", $time );
     vif.assert_rst();
     #( hold_time );

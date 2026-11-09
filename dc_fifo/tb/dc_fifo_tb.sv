@@ -1,9 +1,9 @@
 module dc_fifo_tb;
-  localparam int  DWIDTH          = 32,
-  localparam int  AWIDTH          = 8,
-  localparam bit  SHOWAHEAD       = 1,
-  localparam bit  REGISTER_OUTPUT = 0,
-  localparam bit  RESET_LOW       = 1
+  localparam int  DWIDTH          = 32;
+  localparam int  AWIDTH          = 8;
+  localparam bit  SHOWAHEAD       = 1;
+  localparam bit  REGISTER_OUTPUT = 0;
+  localparam bit  RESET_LOW       = 1;
   
   localparam time WR_CLK_PERIOD   = 6.4ns;
   localparam time WR_CLK_PHASE    = 0ns;
@@ -33,9 +33,9 @@ module dc_fifo_tb;
         #( RD_CLK_PERIOD / 2.0 ) rd_clk = ~rd_clk;
     end
   
-  wr_if  #( DWIDTH    ) wr_if_inst  ( wr_clk );
-  rd_if  #( DWIDTH    ) rd_if_inst  ( rd_clk );
-  rst_if #( RESET_LOW ) rst_if_inst;
+  wr_if  #( DWIDTH, AWIDTH ) wr_if_inst  ( wr_clk );
+  rd_if  #( DWIDTH, AWIDTH ) rd_if_inst  ( rd_clk );
+  rst_if #( RESET_LOW      ) rst_if_inst ();
   
   dc_fifo #(
     .DWIDTH          ( DWIDTH                  ),

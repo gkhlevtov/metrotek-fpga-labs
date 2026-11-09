@@ -1,5 +1,5 @@
 class rd_monitor #(
-  paramater int DWIDTH = 32
+  parameter int DWIDTH = 32
 );
   virtual rd_if #( DWIDTH ) vif;
   golden_model              gm;
@@ -11,16 +11,16 @@ class rd_monitor #(
   function new(
     virtual rd_if #( DWIDTH ) vif,
     golden_model              gm
-  )
+  );
     this.vif = vif;
     this.gm  = gm;
   endfunction
   
-  function void reset()
+  function void reset();
     pending = 1'b0;
   endfunction
   
-  task run()
+  task run();
     forever
       begin
         @( posedge vif.clk );
