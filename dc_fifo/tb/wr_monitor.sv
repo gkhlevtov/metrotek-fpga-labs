@@ -1,12 +1,13 @@
 class wr_monitor #(
-  parameter int DWIDTH = 32
+  parameter int DWIDTH = 32,
+  parameter int AWIDTH = 8
 );
-  virtual wr_if #( DWIDTH ) vif;
-  golden_model              gm;
+  virtual wr_if #( DWIDTH, AWIDTH ) vif;
+  golden_model                      gm;
 
   function new(
-    virtual wr_if #( DWIDTH ) vif,
-    golden_model              gm
+    virtual wr_if #( DWIDTH, AWIDTH ) vif,
+    golden_model                       gm
   );
     this.vif = vif;
     this.gm  = gm;

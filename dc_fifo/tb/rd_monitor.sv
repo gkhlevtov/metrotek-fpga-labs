@@ -1,16 +1,17 @@
 class rd_monitor #(
-  parameter int DWIDTH = 32
+  parameter int DWIDTH = 32,
+  parameter int AWIDTH = 8
 );
-  virtual rd_if #( DWIDTH ) vif;
-  golden_model              gm;
+  virtual rd_if #( DWIDTH, AWIDTH ) vif;
+  golden_model                      gm;
   
   bit pending         = 1'b0;
   // SHOWAHEAD = 0 && REGISTER_OUTPUT = 1
   bit data_next_cycle = 1'b0;
   
   function new(
-    virtual rd_if #( DWIDTH ) vif,
-    golden_model              gm
+    virtual rd_if #( DWIDTH, AWIDTH ) vif,
+    golden_model                      gm
   );
     this.vif = vif;
     this.gm  = gm;

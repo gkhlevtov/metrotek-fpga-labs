@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 interface wr_if #(
   parameter int DWIDTH = 32,
   parameter int AWIDTH = 8
@@ -9,4 +11,9 @@ interface wr_if #(
   logic [AWIDTH:0]   usedw;
   logic              full;
   logic              almost_full;
+
+  initial
+    begin
+      wrreq = 1'b0;
+    end
 endinterface 

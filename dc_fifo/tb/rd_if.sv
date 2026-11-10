@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 interface rd_if #(
   parameter int DWIDTH = 32,
   parameter int AWIDTH = 8
@@ -9,4 +11,7 @@ interface rd_if #(
   logic [AWIDTH:0]   usedw;
   logic              empty;
   logic              almost_empty;
+
+  initial
+    rdreq = 1'b0;
 endinterface

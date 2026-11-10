@@ -1,11 +1,12 @@
 class rd_driver #(
-  parameter int DWIDTH = 32
+  parameter int DWIDTH = 32,
+  parameter int AWIDTH = 8
 );
-  virtual rd_if #( DWIDTH ) vif;
+  virtual rd_if #( DWIDTH, AWIDTH ) vif;
   
   int prob = 90;
 
-  function new( virtual rd_if #( DWIDTH ) vif );
+  function new( virtual rd_if #( DWIDTH, AWIDTH ) vif );
     this.vif = vif;
   endfunction
 
@@ -13,13 +14,8 @@ class rd_driver #(
     forever
       begin
         @( posedge vif.clk )
-        if( $urandom(1, 99) < prob )
-          begin
-            $display( "[@%0t][DRV_DRV] reading word", $time );
-            vif.rdreq <= 1'b1;
-          end
-        else
-          vif.rdreq <= 1'b0;
+        //$display( "[@%0t][RD_DRV] reading word", $time );
+        vif.rdreq <= ( $urandom_range(99) < prob );
       end
   endtask
 endclass

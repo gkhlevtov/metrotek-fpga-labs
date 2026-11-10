@@ -23,14 +23,11 @@ class generator #(
   task send_word( word_t word );
     gen2drv.put(word);
     idx++;
-    $display( "[@%0t][GEN] sent word #%0d: %0h", $time, idx, word );
+    //$display( "[@%0t][GEN] sent word #%0d: %0h", $time, idx, word );
   endtask
  
   task run_simple_test( int n );
-    word_t word;
-    word = random_word();
-   
     for( int i = 0; i < n; i++ )
-      send_word(word);
+      send_word( random_word() );
   endtask
 endclass

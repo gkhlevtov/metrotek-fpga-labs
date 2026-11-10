@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 package dc_fifo_pkg;
   `include "golden_model.sv"
   `include "wr_driver.sv"

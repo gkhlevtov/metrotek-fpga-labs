@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 interface rst_if #(
   parameter bit RESET_LOW = 1
 );

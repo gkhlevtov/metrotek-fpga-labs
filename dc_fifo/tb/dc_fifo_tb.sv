@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module dc_fifo_tb;
   localparam int  DWIDTH          = 32;
   localparam int  AWIDTH          = 8;
@@ -5,10 +7,10 @@ module dc_fifo_tb;
   localparam bit  REGISTER_OUTPUT = 0;
   localparam bit  RESET_LOW       = 1;
   
-  localparam time WR_CLK_PERIOD   = 6.4ns;
+  localparam time WR_CLK_PERIOD   = 3.2ns;
   localparam time WR_CLK_PHASE    = 0ns;
   localparam time RD_CLK_PERIOD   = 6.4ns;
-  localparam time RD_CLK_PHASE    = 1ns;
+  localparam time RD_CLK_PHASE    = 0ns;
   
   typedef logic [DWIDTH-1:0] word_t;
   
