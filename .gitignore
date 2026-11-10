@@ -31,3 +31,10 @@ exam/tb/*.mti
 exam/tb/*.mpf
 exam/tb/*.wlf
 exam/tb/*.vstf
+dc_fifo/transcript
+dc_fifo/tb/work
+dc_fifo/tb/transcript
+dc_fifo/tb/*.mti
+dc_fifo/tb/*.mpf
+dc_fifo/tb/*.wlf
+dc_fifo/tb/*.vstf
