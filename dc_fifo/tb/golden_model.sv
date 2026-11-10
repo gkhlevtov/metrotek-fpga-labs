@@ -17,6 +17,7 @@ class golden_model #(
   function void push( logic [DWIDTH-1:0] data );
     q.push_back(data);
     pushed++;
+    //$display( "[@%0t][GM] pushed word #%0d: %0h", $time, pushed, data );
 
     if( q.size > depth )
       begin
@@ -36,7 +37,7 @@ class golden_model #(
       end       
     
     exp = q.pop_front();
-
+    
     if( exp !== got )
       begin
         errors++;
@@ -44,6 +45,7 @@ class golden_model #(
       end
 
     checked++;
+    //$display( "[@%0t][GM] checked word #%0d: %0h", $time, checked, exp );
   endfunction
 
   function void clear();

@@ -9,6 +9,8 @@ vlog -sv dc_fifo_tb.sv
 
 vsim -sv_seed 12345 -voptargs="+acc" dc_fifo_tb
 
+radix -binary
+
 add wave /dc_fifo_tb/rst_if_inst/rst
     
 # write

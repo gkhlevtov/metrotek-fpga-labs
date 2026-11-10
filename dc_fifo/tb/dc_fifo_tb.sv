@@ -7,10 +7,10 @@ module dc_fifo_tb;
   localparam bit  REGISTER_OUTPUT = 0;
   localparam bit  RESET_LOW       = 1;
   
-  localparam time WR_CLK_PERIOD   = 3.2ns;
+  localparam time WR_CLK_PERIOD   = 6.4ns;
   localparam time WR_CLK_PHASE    = 0ns;
-  localparam time RD_CLK_PERIOD   = 6.4ns;
-  localparam time RD_CLK_PHASE    = 0ns;
+  localparam time RD_CLK_PERIOD   = 5.0ns;
+  localparam time RD_CLK_PHASE    = 0.6ns;
   
   typedef logic [DWIDTH-1:0] word_t;
   
