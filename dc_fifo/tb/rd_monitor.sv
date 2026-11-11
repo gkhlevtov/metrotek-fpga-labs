@@ -3,7 +3,7 @@ class rd_monitor #(
   parameter int AWIDTH = 8
 );
   virtual rd_if #( DWIDTH, AWIDTH ) vif;
-  golden_model                      gm;
+  golden_model  #( DWIDTH         ) gm;
   
   bit pending         = 1'b0;
   // SHOWAHEAD = 0 && REGISTER_OUTPUT = 1
@@ -11,7 +11,7 @@ class rd_monitor #(
   
   function new(
     virtual rd_if #( DWIDTH, AWIDTH ) vif,
-    golden_model                      gm
+    golden_model  #( DWIDTH         ) gm
   );
     this.vif = vif;
     this.gm  = gm;
