@@ -23,9 +23,7 @@ class environment #(
   virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif;
   virtual rst_if #( RESET_LOW      ) rst_vif;
 
-  // Run settings
-  int unsigned num_random = 100;
-  time         reset_time = 50ns;
+  time reset_time = 50ns;
 
   function new(
     virtual wr_if  #( DWIDTH, AWIDTH ) wr_vif,
@@ -50,7 +48,7 @@ class environment #(
   endfunction
 
   task drain();
-    int timeout = 15000;
+    int timeout = FIFO_SIZE * 30;
 
     while( ( ( gen2drv.num != 0 ) || ( gm.checked < gen.idx ) ) && ( timeout > 0 ) )
       begin
