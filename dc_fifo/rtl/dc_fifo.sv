@@ -4,13 +4,13 @@ module dc_fifo #(
   parameter ALMOST_FULL_VALUE  = ( AWIDTH > 2 ) ? ( 2 ** AWIDTH - 5 ) : ( 2 ** AWIDTH - 1 ),
   parameter ALMOST_EMPTY_VALUE = ( AWIDTH > 2 ) ? ( 5 ) : ( 2 ** ( AWIDTH - 1 ) ),
   parameter SHOWAHEAD          = 1,
-  parameter REGISTER_OUTPUT    = 0,
-  parameter RESET_LOW          = 1
+  parameter REGISTER_OUTPUT    = 0
 )(
   input  logic              wr_clk_i,
   input  logic              rd_clk_i,
 
-  input  logic              rst_i,
+  input  logic              wr_rst_i,
+  input  logic              rd_rst_i,
 
   input  logic [DWIDTH-1:0] data_i,
   input  logic              wrreq_i,
@@ -27,14 +27,6 @@ module dc_fifo #(
   output logic              almost_empty_o
 );
 
-  logic [DWIDTH-1:0] memory [2**AWIDTH-1:0];
-  
-  logic              wr_rst_s1;
-  logic              wr_rst;
-  
-  logic              rd_rst_s1;
-  logic              rd_rst;
-  
   logic [AWIDTH:0]   wr_ptr_bin;
   logic [AWIDTH:0]   rd_ptr_bin;
   
@@ -61,6 +53,22 @@ module dc_fifo #(
   logic [AWIDTH:0]   wrusedw;
   logic [AWIDTH:0]   rdusedw;
   
+  logic              rd_enable;
+
+  simple_dual_two_clocks #(
+    .DWIDTH  ( DWIDTH                 ),
+    .AWIDTH  ( AWIDTH                 )
+  ) ram_inst (
+    .wr_clk  ( wr_clk_i               ),
+    .rd_clk  ( rd_clk_i               ),
+    .wr_en   ( wr_allowed             ),
+    .rd_en   ( rd_enable              ),
+    .wr_addr ( wr_ptr_bin[AWIDTH-1:0] ),
+    .rd_addr ( ram_rd_ptr             ),
+    .data_i  ( data_i                 ),
+    .data_o  ( ram_data_o             )
+  );
+ 
   function automatic logic [AWIDTH:0] bin2gray( input logic [AWIDTH:0] bin );
     return ( bin >> 1) ^ bin;
   endfunction
@@ -74,81 +82,16 @@ module dc_fifo #(
     return bin;
   endfunction
   
-  generate
-    if( RESET_LOW )
-      begin
-        // wr_rst 
-        always_ff @( posedge wr_clk_i or negedge rst_i )
-          begin
-            if( !rst_i )
-              begin
-                wr_rst_s1 <= 1'b0;
-                wr_rst    <= 1'b0;
-              end
-            else
-              begin
-                wr_rst_s1 <= 1'b1;
-                wr_rst    <= wr_rst_s1;
-              end
-          end
-  
-        // rd_rst
-        always_ff @( posedge rd_clk_i or negedge rst_i )
-          begin
-            if( !rst_i )
-              begin
-                rd_rst_s1 <= 1'b0;
-                rd_rst    <= 1'b0;
-              end
-            else
-              begin
-                rd_rst_s1 <= 1'b1;
-                rd_rst    <= rd_rst_s1;
-              end
-          end
-      end
-    else
-      begin
-        // wr_rst 
-        always_ff @( posedge wr_clk_i or posedge rst_i )
-          begin
-            if( rst_i )
-              begin
-                wr_rst_s1 <= 1'b0;
-                wr_rst    <= 1'b0;
-              end
-            else
-              begin
-                wr_rst_s1 <= 1'b1;
-                wr_rst    <= wr_rst_s1;
-              end
-          end
-  
-        // rd_rst
-        always_ff @( posedge rd_clk_i or posedge rst_i )
-          begin
-            if( rst_i )
-              begin
-                rd_rst_s1 <= 1'b0;
-                rd_rst    <= 1'b0;
-              end
-            else
-              begin
-                rd_rst_s1 <= 1'b1;
-                rd_rst    <= rd_rst_s1;
-              end
-          end
-      end
-  endgenerate
-  
+  assign rd_enable = ( SHOWAHEAD ) ? ( 1'b1 ) : rd_allowed;
+
   // bin to gray
   assign wr_ptr_gray = bin2gray(wr_ptr_bin);
   assign rd_ptr_gray = bin2gray(rd_ptr_bin);
 
   // sync
-  always_ff @( posedge rd_clk_i or negedge rd_rst )
+  always_ff @( posedge rd_clk_i )
     begin
-      if( !rd_rst )
+      if( rd_rst_i )
         begin
           wr_ptr_gray_s1 <= (AWIDTH+1)'(0);
           wr_ptr_gray_s2 <= (AWIDTH+1)'(0);
@@ -160,9 +103,9 @@ module dc_fifo #(
         end
     end
 
-  always_ff @( posedge wr_clk_i or negedge wr_rst )
+  always_ff @( posedge wr_clk_i )
     begin
-      if( !wr_rst )
+      if( wr_rst_i )
         begin
           rd_ptr_gray_s1 <= (AWIDTH+1)'(0);
           rd_ptr_gray_s2 <= (AWIDTH+1)'(0);
@@ -186,94 +129,56 @@ module dc_fifo #(
   assign rd_ptr_bin_next = rd_ptr_bin + ( ( rd_allowed ) ? ( 1'd1 ) : ( 1'd0 ) );
   
   // ram reading pointer
-  assign ram_rd_ptr = ( SHOWAHEAD && REGISTER_OUTPUT ) ? ( rd_ptr_bin_next[AWIDTH-1:0] ) : ( rd_ptr_bin[AWIDTH-1:0] );
-  	
-  // ram output
-  assign ram_data_o = memory[ram_rd_ptr];
+  assign ram_rd_ptr = ( SHOWAHEAD ) ? ( rd_ptr_bin_next[AWIDTH-1:0] ) : ( rd_ptr_bin[AWIDTH-1:0] );
   
   // wr_ptr_bin
-  always_ff @( posedge wr_clk_i or negedge wr_rst )
+  always_ff @( posedge wr_clk_i )
     begin
-      if( !wr_rst )
+      if( wr_rst_i )
         wr_ptr_bin <= (AWIDTH+1)'(0);
       else if( wr_allowed )
         wr_ptr_bin <= wr_ptr_bin + 1'd1;
     end
   
   // rd_ptr_bin
-  always_ff @( posedge rd_clk_i or negedge rd_rst )
+  always_ff @( posedge rd_clk_i )
     begin
-      if( !rd_rst )
+      if( rd_rst_i )
         rd_ptr_bin <= (AWIDTH+1)'(0);
       else if( rd_allowed )
         rd_ptr_bin <= rd_ptr_bin_next;
     end
   
-  // memory write
-  always_ff @( posedge wr_clk_i )
-    begin
-      if( wr_allowed )
-        memory[wr_ptr_bin[AWIDTH-1:0]] <= data_i;
-    end
-  
   // memory read
   generate
-  case( {SHOWAHEAD, REGISTER_OUTPUT} )
-
-    2'b10:
+    if( REGISTER_OUTPUT == 1'b0 )
       begin
         assign data_o = ram_data_o;
       end
-
-    2'b11:
+    else
       begin
-        logic [DWIDTH-1:0] data_reg;
-        always_ff @( posedge rd_clk_i or negedge rd_rst )
+        always_ff @( posedge rd_clk_i )
           begin
-           if( !rd_rst )
-             data_reg <= DWIDTH'(0);
-           else 
-             data_reg <= ram_data_o;
-          end
-        assign data_o = data_reg;
-      end
-
-    2'b00:  
-      begin
-        assign data_o = ram_data_o;
-      end
-
-    2'b01:
-      begin
-        always_ff @( posedge rd_clk_i or negedge rd_rst )
-          begin
-            if( !rd_rst )
+            if( rd_rst_i )
               data_o <= DWIDTH'(0);
-            else if( rd_allowed )
+            else if( SHOWAHEAD || rd_allowed )
               data_o <= ram_data_o;
           end
       end
-
-    default:
-      begin
-        assign data_o = ram_data_o;
-      end	
-
-  endcase
   endgenerate
   
   // usedw
-  always_ff @( posedge wr_clk_i or negedge wr_rst )
+  always_ff @( posedge wr_clk_i )
     begin
-      if( !wr_rst )
+      if( wr_rst_i )
         wrusedw <= (AWIDTH+1)'(0);
       else
         wrusedw <= wr_ptr_bin - rd_ptr_bin_wr; 
     end
 
-  always_ff @( posedge rd_clk_i or negedge rd_rst )
+  always_ff @( posedge rd_clk_i )
     begin
-      if( !rd_rst )
+      if( rd_rst_i )
         rdusedw <= (AWIDTH+1)'(0);
       else
         rdusedw <= wr_ptr_bin_rd - rd_ptr_bin;
