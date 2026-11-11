@@ -1,6 +1,7 @@
 vlib work
 
 vlog -sv ../rtl/dc_fifo.sv
+vlog -sv ../rtl/simple_dual_two_clocks.sv
 vlog -sv wr_if.sv
 vlog -sv rd_if.sv
 vlog -sv rst_if.sv
