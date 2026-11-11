@@ -1,8 +1,8 @@
 module dc_fifo #(
   parameter DWIDTH             = 32,
   parameter AWIDTH             = 8,
-  parameter ALMOST_FULL_VALUE  = 2 ** AWIDTH - 5,
-  parameter ALMOST_EMPTY_VALUE = 5,
+  parameter ALMOST_FULL_VALUE  = ( AWIDTH > 2 ) ? ( 2 ** AWIDTH - 5 ) : ( 2 ** AWIDTH - 1 ),
+  parameter ALMOST_EMPTY_VALUE = ( AWIDTH > 2 ) ? ( 5 ) : ( 2 ** ( AWIDTH - 1 ) ),
   parameter SHOWAHEAD          = 1,
   parameter REGISTER_OUTPUT    = 0,
   parameter RESET_LOW          = 1
@@ -150,8 +150,8 @@ module dc_fifo #(
     begin
       if( !rd_rst )
         begin
-          wr_ptr_gray_s1 <= '0;
-          wr_ptr_gray_s2 <= '0;
+          wr_ptr_gray_s1 <= (AWIDTH+1)'(0);
+          wr_ptr_gray_s2 <= (AWIDTH+1)'(0);
         end
       else
         begin
@@ -164,8 +164,8 @@ module dc_fifo #(
     begin
       if( !wr_rst )
         begin
-          rd_ptr_gray_s1 <= '0;
-          rd_ptr_gray_s2 <= '0;
+          rd_ptr_gray_s1 <= (AWIDTH+1)'(0);
+          rd_ptr_gray_s2 <= (AWIDTH+1)'(0);
         end
       else
         begin
@@ -195,7 +195,7 @@ module dc_fifo #(
   always_ff @( posedge wr_clk_i or negedge wr_rst )
     begin
       if( !wr_rst )
-        wr_ptr_bin <= '0;
+        wr_ptr_bin <= (AWIDTH+1)'(0);
       else if( wr_allowed )
         wr_ptr_bin <= wr_ptr_bin + 1'd1;
     end
@@ -204,7 +204,7 @@ module dc_fifo #(
   always_ff @( posedge rd_clk_i or negedge rd_rst )
     begin
       if( !rd_rst )
-        rd_ptr_bin <= '0;
+        rd_ptr_bin <= (AWIDTH+1)'(0);
       else if( rd_allowed )
         rd_ptr_bin <= rd_ptr_bin_next;
     end
@@ -218,43 +218,55 @@ module dc_fifo #(
   
   // memory read
   generate
-    if( SHOWAHEAD && !REGISTER_OUTPUT )
+  case( {SHOWAHEAD, REGISTER_OUTPUT} )
+
+    2'b10:
       begin
         assign data_o = ram_data_o;
       end
-    else if( SHOWAHEAD && REGISTER_OUTPUT )
+
+    2'b11:
       begin
         logic [DWIDTH-1:0] data_reg;
         always_ff @( posedge rd_clk_i or negedge rd_rst )
           begin
            if( !rd_rst )
-             data_reg <= '0;
+             data_reg <= DWIDTH'(0);
            else 
              data_reg <= ram_data_o;
           end
         assign data_o = data_reg;
       end
-    else if( !SHOWAHEAD && !REGISTER_OUTPUT )
+
+    2'b00:  
       begin
         assign data_o = ram_data_o;
       end
-    else
+
+    2'b01:
       begin
         always_ff @( posedge rd_clk_i or negedge rd_rst )
           begin
             if( !rd_rst )
-              data_o <= '0;
+              data_o <= DWIDTH'(0);
             else if( rd_allowed )
               data_o <= ram_data_o;
           end
       end
+
+    default:
+      begin
+        assign data_o = ram_data_o;
+      end	
+
+  endcase
   endgenerate
   
   // usedw
   always_ff @( posedge wr_clk_i or negedge wr_rst )
     begin
       if( !wr_rst )
-        wrusedw <= '0;
+        wrusedw <= (AWIDTH+1)'(0);
       else
         wrusedw <= wr_ptr_bin - rd_ptr_bin_wr; 
     end
@@ -262,7 +274,7 @@ module dc_fifo #(
   always_ff @( posedge rd_clk_i or negedge rd_rst )
     begin
       if( !rd_rst )
-        rdusedw <= '0;
+        rdusedw <= (AWIDTH+1)'(0);
       else
         rdusedw <= wr_ptr_bin_rd - rd_ptr_bin;
     end
