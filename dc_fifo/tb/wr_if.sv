@@ -6,6 +6,7 @@ interface wr_if #(
 )(
   input bit clk	
 );
+  logic              rst;
   logic [DWIDTH-1:0] data;
   logic              wrreq;
   logic [AWIDTH:0]   usedw;
@@ -15,5 +16,6 @@ interface wr_if #(
   initial
     begin
       wrreq = 1'b0;
+      rst   = 1'b1;
     end
 endinterface 

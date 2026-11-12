@@ -2,8 +2,7 @@ class environment #(
   parameter int  DWIDTH          = 32,
   parameter int  AWIDTH          = 8,
   parameter bit  SHOWAHEAD       = 1,
-  parameter bit  REGISTER_OUTPUT = 0,
-  parameter bit  RESET_LOW       = 1
+  parameter bit  REGISTER_OUTPUT = 0
 );
   localparam FIFO_SIZE = 2 ** AWIDTH;
   
@@ -12,7 +11,7 @@ class environment #(
   generator    #( DWIDTH         ) gen;
   wr_driver    #( DWIDTH, AWIDTH ) wr_drv;
   rd_driver    #( DWIDTH, AWIDTH ) rd_drv;
-  rst_driver   #( RESET_LOW      ) rst_drv;
+  rst_driver   #( DWIDTH, AWIDTH ) rst_drv;
   wr_monitor   #( DWIDTH, AWIDTH ) wr_mon;
   rd_monitor   #( DWIDTH, AWIDTH ) rd_mon;
   golden_model #( DWIDTH         ) gm;
@@ -21,28 +20,23 @@ class environment #(
 
   virtual wr_if  #( DWIDTH, AWIDTH ) wr_vif;
   virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif;
-  virtual rst_if #( RESET_LOW      ) rst_vif;
-
-  time reset_time = 50ns;
 
   function new(
     virtual wr_if  #( DWIDTH, AWIDTH ) wr_vif,
-    virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif,
-    virtual rst_if #( RESET_LOW      ) rst_vif
+    virtual rd_if  #( DWIDTH, AWIDTH ) rd_vif
   );
-    this.wr_vif  = wr_vif;
-    this.rd_vif  = rd_vif;
-    this.rst_vif = rst_vif;
+    this.wr_vif = wr_vif;
+    this.rd_vif = rd_vif;
     
-    gen2drv      = new();
-    gm           = new( FIFO_SIZE       );
+    gen2drv     = new();
+    gm          = new( FIFO_SIZE       );
     
-    gen          = new( gen2drv         );
-    wr_drv       = new( wr_vif, gen2drv );
-    rd_drv       = new( rd_vif          );
-    rst_drv      = new( rst_vif         );
-    wr_mon       = new( wr_vif, gm      );
-    rd_mon       = new( rd_vif, gm      );
+    gen         = new( gen2drv         );
+    wr_drv      = new( wr_vif, gen2drv );
+    rd_drv      = new( rd_vif          );
+    rst_drv     = new( wr_vif, rd_vif  );
+    wr_mon      = new( wr_vif, gm      );
+    rd_mon      = new( rd_vif, gm      );
 
     rd_mon.data_next_cycle = ( !SHOWAHEAD && REGISTER_OUTPUT );
   endfunction
@@ -106,7 +100,7 @@ class environment #(
   endtask
 
   task reset();
-    rst_drv.pulse_rst(reset_time);
+    rst_drv.pulse_rst( 10, 10 );
     repeat(10)
       @( posedge wr_vif.clk );
     repeat(10)
@@ -114,8 +108,8 @@ class environment #(
   endtask
 
   task run();
-    $display( "[@%0t][ENV]: Starting testbench:\nDWIDTH=%0d,\nSHOWAHEAD=%1b,\nREGISTER_OUTPUT=%1b,\nRESET_LOW=%1b",
-              $time, DWIDTH, SHOWAHEAD, REGISTER_OUTPUT, RESET_LOW );
+    $display( "[@%0t][ENV]: Starting testbench:\nDWIDTH=%0d,\nSHOWAHEAD=%1b,\nREGISTER_OUTPUT=%1b",
+              $time, DWIDTH, SHOWAHEAD, REGISTER_OUTPUT );
 
     reset();
      
@@ -126,6 +120,9 @@ class environment #(
       rd_mon.run();
     join_none
     
+    scenario("Single word", 100, 100, 1);
+    reset;
+
     scenario("Full speed write & read", 100, 100, FIFO_SIZE);
     reset();
     

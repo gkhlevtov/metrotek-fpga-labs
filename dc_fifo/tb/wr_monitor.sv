@@ -17,7 +17,7 @@ class wr_monitor #(
     forever
       begin
         @( posedge vif.clk );
-        if( vif.wrreq && !vif.full )
+        if( !vif.rst && vif.wrreq && !vif.full )
           gm.push(vif.data);
       end
   endtask

@@ -5,7 +5,6 @@ module dc_fifo_tb;
   localparam int  AWIDTH          = 8;
   localparam bit  SHOWAHEAD       = 1;
   localparam bit  REGISTER_OUTPUT = 0;
-  localparam bit  RESET_LOW       = 1;
   
   localparam time WR_CLK_PERIOD   = 6.4ns;
   localparam time WR_CLK_PHASE    = 0ns;
@@ -35,20 +34,19 @@ module dc_fifo_tb;
         #( RD_CLK_PERIOD / 2.0 ) rd_clk = ~rd_clk;
     end
   
-  wr_if  #( DWIDTH, AWIDTH ) wr_if_inst  ( wr_clk );
-  rd_if  #( DWIDTH, AWIDTH ) rd_if_inst  ( rd_clk );
-  rst_if #( RESET_LOW      ) rst_if_inst ();
+  wr_if #( DWIDTH, AWIDTH ) wr_if_inst ( wr_clk );
+  rd_if #( DWIDTH, AWIDTH ) rd_if_inst ( rd_clk );
   
   dc_fifo #(
     .DWIDTH          ( DWIDTH                  ),
     .AWIDTH          ( AWIDTH                  ),
     .SHOWAHEAD       ( SHOWAHEAD               ),
-    .REGISTER_OUTPUT ( REGISTER_OUTPUT         ),
-    .RESET_LOW       ( RESET_LOW               )
+    .REGISTER_OUTPUT ( REGISTER_OUTPUT         )
   ) dut (
     .wr_clk_i        ( wr_clk                  ),
     .rd_clk_i        ( rd_clk                  ),
-    .rst_i           ( rst_if_inst.rst         ),
+    .wr_rst_i        ( wr_if_inst.rst          ),
+    .rd_rst_i        ( rd_if_inst.rst          ),
     .data_i          ( wr_if_inst.data         ),
     .wrreq_i         ( wr_if_inst.wrreq        ),
     .rdreq_i         ( rd_if_inst.rdreq        ),
@@ -65,13 +63,12 @@ module dc_fifo_tb;
     .DWIDTH          ( DWIDTH          ),
     .AWIDTH          ( AWIDTH          ),
     .SHOWAHEAD       ( SHOWAHEAD       ),
-    .REGISTER_OUTPUT ( REGISTER_OUTPUT ),
-    .RESET_LOW       ( RESET_LOW       )
+    .REGISTER_OUTPUT ( REGISTER_OUTPUT )
   ) env;
   
   initial
     begin
-      env = new( wr_if_inst, rd_if_inst, rst_if_inst );
+      env = new( wr_if_inst, rd_if_inst );
       env.run( );
       $stop;
     end

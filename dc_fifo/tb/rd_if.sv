@@ -6,6 +6,7 @@ interface rd_if #(
 )(
   input bit clk	
 );
+  logic              rst;
   logic [DWIDTH-1:0] data;
   logic              rdreq;
   logic [AWIDTH:0]   usedw;
@@ -13,5 +14,8 @@ interface rd_if #(
   logic              almost_empty;
 
   initial
-    rdreq = 1'b0;
+    begin
+      rdreq = 1'b0;
+      rst   = 1'b1;
+    end
 endinterface
