@@ -5,19 +5,19 @@ module dc_fifo_tb;
   localparam int  AWIDTH          = 8;
   localparam bit  SHOWAHEAD       = 1;
   localparam bit  REGISTER_OUTPUT = 0;
-  
+
   localparam time WR_CLK_PERIOD   = 6.4ns;
   localparam time WR_CLK_PHASE    = 0ns;
   localparam time RD_CLK_PERIOD   = 5.0ns;
   localparam time RD_CLK_PHASE    = 0.6ns;
-  
+
   typedef logic [DWIDTH-1:0] word_t;
-  
+
   import dc_fifo_pkg::*;
 
   bit wr_clk;
   bit rd_clk;
-  
+
   // wr_clk
   initial
     begin
@@ -25,7 +25,7 @@ module dc_fifo_tb;
       forever
         #( WR_CLK_PERIOD / 2.0 ) wr_clk = ~wr_clk;
     end
-  
+
   // rd_clk
   initial
     begin
@@ -33,10 +33,10 @@ module dc_fifo_tb;
       forever
         #( RD_CLK_PERIOD / 2.0 ) rd_clk = ~rd_clk;
     end
-  
+
   wr_if #( DWIDTH, AWIDTH ) wr_if_inst ( wr_clk );
   rd_if #( DWIDTH, AWIDTH ) rd_if_inst ( rd_clk );
-  
+
   dc_fifo #(
     .DWIDTH          ( DWIDTH                  ),
     .AWIDTH          ( AWIDTH                  ),
@@ -58,14 +58,14 @@ module dc_fifo_tb;
     .empty_o         ( rd_if_inst.empty        ),
     .almost_empty_o  ( rd_if_inst.almost_empty )
   );
-  
+
   environment #(
     .DWIDTH          ( DWIDTH          ),
     .AWIDTH          ( AWIDTH          ),
     .SHOWAHEAD       ( SHOWAHEAD       ),
     .REGISTER_OUTPUT ( REGISTER_OUTPUT )
   ) env;
-  
+
   initial
     begin
       env = new( wr_if_inst, rd_if_inst );

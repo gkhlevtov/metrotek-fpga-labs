@@ -4,11 +4,10 @@ class rd_monitor #(
 );
   virtual rd_if #( DWIDTH, AWIDTH ) vif;
   golden_model  #( DWIDTH         ) gm;
-  
-  bit pending         = 1'b0;
-  // SHOWAHEAD = 0 && REGISTER_OUTPUT = 1
-  bit data_next_cycle = 1'b0;
-  
+
+  int       latency = 0;
+  bit [3:0] rd_pipe = 4'b0;
+
   function new(
     virtual rd_if #( DWIDTH, AWIDTH ) vif,
     golden_model  #( DWIDTH         ) gm
@@ -16,26 +15,27 @@ class rd_monitor #(
     this.vif = vif;
     this.gm  = gm;
   endfunction
-  
+
   function void reset();
-    pending = 1'b0;
+    rd_pipe = 4'b0;
   endfunction
-  
+
   task run();
+    bit rd_now;
     forever
       begin
         @( posedge vif.clk );
-        if( data_next_cycle && pending )
+        rd_now = !vif.rst && vif.rdreq && !vif.empty;
+        if( latency == 0 )
           begin
-            gm.check(vif.data);
-            pending = 1'b0;
+            if( rd_now )
+              gm.check(vif.data);
           end
-        if( vif.rdreq && !vif.empty )
+        else
           begin
-           if( data_next_cycle )
-             pending = 1'b1;
-           else
+           if( rd_pipe[latency-1] )
              gm.check(vif.data);
+           rd_pipe = { rd_pipe[2:0], rd_now };
           end
       end
   endtask
