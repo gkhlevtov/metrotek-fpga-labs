@@ -1,16 +1,15 @@
 `timescale 1ns/1ps
 
-module dc_fifo_tb;
-  localparam int  DWIDTH          = 32;
-  localparam int  AWIDTH          = 8;
-  localparam bit  SHOWAHEAD       = 1;
-  localparam bit  REGISTER_OUTPUT = 0;
-
-  localparam time WR_CLK_PERIOD   = 6.4ns;
-  localparam time WR_CLK_PHASE    = 0ns;
-  localparam time RD_CLK_PERIOD   = 5.0ns;
-  localparam time RD_CLK_PHASE    = 0.6ns;
-
+module dc_fifo_tb #(
+  parameter int  DWIDTH          = 32,
+  parameter int  AWIDTH          = 8,
+  parameter bit  SHOWAHEAD       = 1,
+  parameter bit  REGISTER_OUTPUT = 0,
+  parameter real WR_CLK_PERIOD   = 6.4,
+  parameter real WR_CLK_PHASE    = 0.0,
+  parameter real RD_CLK_PERIOD   = 5.0,
+  parameter real RD_CLK_PHASE    = 0.6
+);
   typedef logic [DWIDTH-1:0] word_t;
 
   import dc_fifo_pkg::*;
@@ -70,6 +69,6 @@ module dc_fifo_tb;
     begin
       env = new( wr_if_inst, rd_if_inst );
       env.run( );
-      $stop;
+      $finish;
     end
 endmodule

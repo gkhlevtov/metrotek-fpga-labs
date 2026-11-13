@@ -146,7 +146,7 @@ module dc_fifo #(
     end
 
   generate
-    case( {SHOWAHEAD, REGISTER_OUTPUT} )
+    case( { 1'(SHOWAHEAD), 1'(REGISTER_OUTPUT) } )
     2'b00:
       begin
         assign ram_rd_en  = rd_allowed;
