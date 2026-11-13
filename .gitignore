@@ -38,3 +38,4 @@ dc_fifo/tb/*.mti
 dc_fifo/tb/*.mpf
 dc_fifo/tb/*.wlf
 dc_fifo/tb/*.vstf
+dc_fifo/tb/logs
