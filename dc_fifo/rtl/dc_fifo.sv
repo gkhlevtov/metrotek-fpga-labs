@@ -54,20 +54,20 @@ module dc_fifo #(
   logic [AWIDTH:0]   rdusedw;
 
   simple_dual_two_clocks #(
-    .DWIDTH      ( DWIDTH                 ),
-    .AWIDTH      ( AWIDTH                 ),
-    .OUT_REG     ( REGISTER_OUTPUT        )
+    .DWIDTH      ( DWIDTH                     ),
+    .AWIDTH      ( AWIDTH                     ),
+    .OUT_REG     ( REGISTER_OUTPUT            )
   ) ram_inst (
-    .wr_clk_i    ( wr_clk_i               ),
-    .rd_clk_i    ( rd_clk_i               ),
-    .rd_rst_i    ( rd_rst_i               ),
-    .wr_en_i     ( wr_allowed             ),
-    .rd_en_i     ( ram_rd_en              ),
-    .rd_reg_en_i ( ram_reg_en             ),
-    .wr_addr_i   ( wr_ptr_bin[AWIDTH-1:0] ),
+    .wr_clk_i    ( wr_clk_i                   ),
+    .rd_clk_i    ( rd_clk_i                   ),
+    .rd_rst_i    ( rd_rst_i                   ),
+    .wr_en_i     ( wr_allowed                 ),
+    .rd_en_i     ( ram_rd_en                  ),
+    .rd_reg_en_i ( ram_reg_en                 ),
+    .wr_addr_i   ( wr_ptr_bin[AWIDTH-1:0]     ),
     .rd_addr_i   ( ram_rd_ptr_bin[AWIDTH-1:0] ),
-    .data_i      ( data_i                 ),
-    .data_o      ( data_o                 )
+    .data_i      ( data_i                     ),
+    .data_o      ( data_o                     )
   );
 
   function automatic logic [AWIDTH:0] bin2gray( input logic [AWIDTH:0] bin );
