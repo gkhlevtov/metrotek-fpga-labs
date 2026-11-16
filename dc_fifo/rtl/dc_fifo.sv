@@ -31,6 +31,9 @@ module dc_fifo #(
   logic [AWIDTH:0]   ram_rd_ptr_bin;
   logic [AWIDTH:0]   fifo_rd_ptr_bin;
 
+  logic [AWIDTH:0]   wr_ptr_bin_next;
+  logic [AWIDTH:0]   fifo_rd_ptr_bin_next;
+
   logic [AWIDTH:0]   wr_ptr_gray;
   logic [AWIDTH:0]   rd_ptr_gray;
 
@@ -83,8 +86,37 @@ module dc_fifo #(
     return bin;
   endfunction
 
-  assign wr_ptr_gray = bin2gray(wr_ptr_bin);
-  assign rd_ptr_gray = bin2gray(fifo_rd_ptr_bin);
+  assign wr_ptr_bin_next = ( wr_allowed ) ? ( wr_ptr_bin + 1'd1 ) : ( wr_ptr_bin );
+
+  always_ff @( posedge wr_clk_i )
+    begin
+      if( wr_rst_i )
+        begin
+          wr_ptr_bin  <= (AWIDTH+1)'(0);
+          wr_ptr_gray <= (AWIDTH+1)'(0);
+        end
+      else
+        begin
+          wr_ptr_bin  <= wr_ptr_bin_next;
+          wr_ptr_gray <= bin2gray(wr_ptr_bin_next);
+        end
+    end
+
+  assign fifo_rd_ptr_bin_next = ( rd_allowed ) ? ( fifo_rd_ptr_bin + 1'd1 ) : ( fifo_rd_ptr_bin );
+
+  always_ff @( posedge rd_clk_i )
+    begin
+      if( rd_rst_i )
+        begin
+          fifo_rd_ptr_bin <= (AWIDTH+1)'(0);
+          rd_ptr_gray     <= (AWIDTH+1)'(0);
+        end
+      else
+        begin
+          fifo_rd_ptr_bin <= fifo_rd_ptr_bin_next;
+          rd_ptr_gray     <= bin2gray(fifo_rd_ptr_bin_next);
+        end
+    end
 
   // sync
   always_ff @( posedge rd_clk_i )
@@ -121,28 +153,12 @@ module dc_fifo #(
   assign wr_allowed = wrreq_i && !full_o;
   assign rd_allowed = rdreq_i && !empty_o;
 
-  always_ff @( posedge wr_clk_i )
-    begin
-      if( wr_rst_i )
-        wr_ptr_bin <= (AWIDTH+1)'(0);
-      else if( wr_allowed )
-        wr_ptr_bin <= wr_ptr_bin + 1'd1;
-    end
-
   always_ff @( posedge rd_clk_i )
     begin
       if( rd_rst_i )
         ram_rd_ptr_bin <= (AWIDTH+1)'(0);
       else if( ram_rd_en )
         ram_rd_ptr_bin <= ram_rd_ptr_bin + 1'd1;
-    end
-
-  always_ff @( posedge rd_clk_i )
-    begin
-      if( rd_rst_i )
-        fifo_rd_ptr_bin <= (AWIDTH+1)'(0);
-      else if( rd_allowed )
-        fifo_rd_ptr_bin <= fifo_rd_ptr_bin + 1'd1;
     end
 
   generate
