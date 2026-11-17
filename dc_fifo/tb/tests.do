@@ -1,11 +1,4 @@
-vlib work
-
-vlog -sv ../rtl/dc_fifo.sv
-vlog -sv ../rtl/simple_dual_two_clocks.sv
-vlog -sv wr_if.sv
-vlog -sv rd_if.sv
-vlog -sv dc_fifo_pkg.sv
-vlog -sv dc_fifo_tb.sv
+file mkdir logs
 
 # { DWIDTH  AWIDTH  SHOWAHEAD  REG_OUT  WR_PER  WR_PHS  RD_PER  RD_PHS  SEED }
 set test_configs {
@@ -23,12 +16,14 @@ set test_configs {
 }
 
 set run_idx 1
+set any_failed 0
+set summary_report {}
+
 foreach cfg $test_configs {
     lassign $cfg dw aw showahead reg_out wr_per wr_phs rd_per rd_phs seed
 
     set run_name "run${run_idx}_dw${dw}_aw${aw}_sa${showahead}_reg${reg_out}_wr_per${wr_per}_wr_phs${wr_phs}_rd_per${rd_per}_rd_phs${rd_phs}"
-    puts ""
-    puts "=================================================================="
+    puts "\n=================================================================="
     puts "RUN #$run_idx: $run_name"
     puts "=================================================================="
 
@@ -45,40 +40,44 @@ foreach cfg $test_configs {
          -l "logs/${run_name}.log" \
          work.dc_fifo_tb
 
-    log -r /*
-
-    radix -binary
-    add wave -group write /dc_fifo_tb/wr_if_inst/clk
-    add wave -group write /dc_fifo_tb/wr_if_inst/rst
-    add wave -radix hex -group write /dc_fifo_tb/wr_if_inst/data
-    add wave -group write /dc_fifo_tb/wr_if_inst/wrreq
-    add wave -radix uns -group write /dc_fifo_tb/wr_if_inst/usedw
-    add wave -group write /dc_fifo_tb/wr_if_inst/full
-    add wave -group write /dc_fifo_tb/wr_if_inst/almost_full
-
-    add wave -group read /dc_fifo_tb/rd_if_inst/clk
-    add wave -group read /dc_fifo_tb/rd_if_inst/rst
-    add wave -radix hex -group read /dc_fifo_tb/rd_if_inst/data
-    add wave -group read /dc_fifo_tb/rd_if_inst/rdreq
-    add wave -radix uns -group read /dc_fifo_tb/rd_if_inst/usedw
-    add wave -group read /dc_fifo_tb/rd_if_inst/empty
-    add wave -group read /dc_fifo_tb/rd_if_inst/almost_empty
+    onbreak {
+        if {![catch {assertion count -fails -r /} fail_cnt] && $fail_cnt > 0} {
+            puts "ERROR: Found $fail_cnt failed assertions!"
+            assertion report -failed -r /
+        }
+        resume
+    }
 
     onfinish stop
     run -all
 
+    set questa_err 0
+    if {![catch {coverage attribute -name TESTSTATUS -concise} tstatus]} {
+        if {$tstatus >= 2} {
+            set questa_err 1
+        }
+    }
+
     quit -sim
 
-    set fp [open logs/${run_name}.log r]
+    set fp [open "logs/${run_name}.log" r]
     set log_data [read $fp]
     close $fp
 
-    if {[regexp -line {^#?\s*(TEST (?:PASSED|FAILED).*)$} $log_data -> result_line]} {
-        set status [string trim $result_line]
-    } elseif {[regexp -line {^#?\s*(\*\* (?:Error|Fatal).*)$} $log_data -> err_line]} {
+    if {[regexp -line {^#?\s*(\*\* (?:Error|Fatal).*)$} $log_data -> err_line]} {
         set status "FAILED: [string trim $err_line]"
+        set any_failed 1
+    } elseif {[regexp -line {^#?\s*(TEST FAILED.*)$} $log_data -> result_line]} {
+        set status [string trim $result_line]
+        set any_failed 1
+    } elseif {$questa_err} {
+        set status "FAILED (TESTSTATUS >= 2)"
+        set any_failed 1
+    } elseif {[regexp -line {^#?\s*(TEST PASSED.*)$} $log_data -> result_line]} {
+        set status [string trim $result_line]
     } else {
-        set status "FAILED"
+        set status "FAILED (No PASSED message)"
+        set any_failed 1
     }
 
     puts ">>> Run #$run_idx result: $status <<<"
@@ -94,3 +93,11 @@ foreach line $summary_report {
     puts $line
 }
 puts "=================================================================="
+
+if {$any_failed} {
+    puts "REGRESSION FAILED!"
+    quit -f -code 1
+} else {
+    puts "ALL TESTS PASSED!"
+    quit -f -code 0
+}

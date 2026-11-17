@@ -69,6 +69,6 @@ module dc_fifo_tb #(
     begin
       env = new( wr_if_inst, rd_if_inst );
       env.run( );
-      $finish;
+      $stop;
     end
 endmodule

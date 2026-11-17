@@ -1,4 +1,11 @@
-vlib work
+onerror {
+    puts "ERROR: Compilation or simulation failed!"
+    if {[batch_mode]} { quit -f -code 1 }
+}
+
+if {![file exists work]} {
+    vlib work
+}
 
 vlog -sv ../rtl/dc_fifo.sv
 vlog -sv ../rtl/simple_dual_two_clocks.sv
@@ -7,26 +14,21 @@ vlog -sv rd_if.sv
 vlog -sv dc_fifo_pkg.sv
 vlog -sv dc_fifo_tb.sv
 
-vsim -sv_seed 12345 dc_fifo_tb
+if {[batch_mode]} {
+    puts ">>> Running in BATCH mode: executing tests (tests.do) <<<"
+    do tests.do
+} else {
+    puts ">>> Running in GUI mode: executing single run with waves (run.do) <<<"
 
-radix -binary
+    vsim -voptargs=+acc work.dc_fifo_tb
+    vsim -sv_seed 12345 work.dc_fifo_tb
 
-# write
-add wave -group write /dc_fifo_tb/wr_if_inst/clk
-add wave -group write /dc_fifo_tb/wr_if_inst/rst
-add wave -radix hex -group write /dc_fifo_tb/wr_if_inst/data
-add wave -group write /dc_fifo_tb/wr_if_inst/wrreq
-add wave -radix uns -group write /dc_fifo_tb/wr_if_inst/usedw
-add wave -group write /dc_fifo_tb/wr_if_inst/full
-add wave -group write /dc_fifo_tb/wr_if_inst/almost_full
+    log -r /*
+    if {[file exists wave.do]} {
+        do wave.do
+    }
 
-# read
-add wave -group read /dc_fifo_tb/rd_if_inst/clk
-add wave -group read /dc_fifo_tb/rd_if_inst/rst
-add wave -radix hex -group read /dc_fifo_tb/rd_if_inst/data
-add wave -group read /dc_fifo_tb/rd_if_inst/rdreq
-add wave -radix uns -group read /dc_fifo_tb/rd_if_inst/usedw
-add wave -group read /dc_fifo_tb/rd_if_inst/empty
-add wave -group read /dc_fifo_tb/rd_if_inst/almost_empty
+    onfinish stop
+    run -all
+}
 
-run -all
