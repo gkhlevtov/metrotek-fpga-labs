@@ -1,6 +1,6 @@
 module dc_fifo_top #(
-  parameter DWIDTH             = 32,
-  parameter AWIDTH             = 8,
+  parameter DWIDTH             = 74,
+  parameter AWIDTH             = 12,
   parameter ALMOST_FULL_VALUE  = ( AWIDTH > 2 ) ? ( 2 ** AWIDTH - 5 ) : ( 2 ** AWIDTH - 1 ),
   parameter ALMOST_EMPTY_VALUE = ( AWIDTH > 2 ) ? ( 5 ) : ( 2 ** ( AWIDTH - 1 ) ),
   parameter SHOWAHEAD          = 1,
