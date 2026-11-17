@@ -39,3 +39,16 @@ dc_fifo/tb/*.mpf
 dc_fifo/tb/*.wlf
 dc_fifo/tb/*.vstf
 dc_fifo/tb/logs
+dc_fifo/vivado_prj/*.cache/
+dc_fifo/vivado_prj/*.hw/
+dc_fifo/vivado_prj/*.runs/
+dc_fifo/vivado_prj/*.srcs/
+dc_fifo/vivado_prj/*.jou
+dc_fifo/vivado_prj/*.log
+dc_fifo/vivado_prj/*.str
+dc_fifo/vivado_prj/*.Xil
+dc_fifo/vivado_prj/*.xpr
+dc_fifo/*.jou
+dc_fifo/*.log
+dc_fifo/*.str
+
