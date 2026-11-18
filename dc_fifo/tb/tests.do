@@ -41,12 +41,16 @@ foreach cfg $test_configs {
          work.dc_fifo_tb
 
     onbreak {
-        if {![catch {assertion count -fails -r /} fail_cnt] && $fail_cnt > 0} {
-            puts "ERROR: Found $fail_cnt failed assertions!"
-            assertion report -failed -r /
-        }
-        resume
+      if {![catch {assertion count -fails -r /} fail_cnt]} {
+          set fail_cnt [string trim $fail_cnt]
+          if {[string is integer -strict $fail_cnt] && $fail_cnt > 0} {
+             puts "ERROR: Found $fail_cnt failed assertions!"
+             assertion report -failed -r /
+         }
+      }
+      resume
     }
+
 
     onfinish stop
     run -all
