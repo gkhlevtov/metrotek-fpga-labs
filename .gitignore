@@ -40,6 +40,7 @@ dc_fifo/tb/*.wlf
 dc_fifo/tb/*.vstf
 dc_fifo/tb/logs
 dc_fifo/vivado_prj/*.cache/
+dc_fifo/vivado_prj/ip/*
 dc_fifo/vivado_prj/*.hw/
 dc_fifo/vivado_prj/*.runs/
 dc_fifo/vivado_prj/*.srcs/
