@@ -38,7 +38,7 @@ class environment #(
     wr_mon      = new( wr_vif, gm      );
     rd_mon      = new( rd_vif, gm      );
 
-    rd_mon.latency = ( SHOWAHEAD ) ? ( 0 ) : ( 1 + REGISTER_OUTPUT );
+    rd_mon.latency = ( SHOWAHEAD ) ? ( 0 ) : ( 1 );
   endfunction
 
   task drain();

@@ -1,31 +1,31 @@
 module dc_fifo #(
-  parameter DWIDTH             = 32,
-  parameter AWIDTH             = 8,
-  parameter ALMOST_FULL_VALUE  = ( AWIDTH > 2 ) ? ( 2 ** AWIDTH - 5 ) : ( 2 ** AWIDTH - 1 ),
-  parameter ALMOST_EMPTY_VALUE = ( AWIDTH > 2 ) ? ( 5 ) : ( 2 ** ( AWIDTH - 1 ) ),
-  parameter SHOWAHEAD          = 1,
-  parameter REGISTER_OUTPUT    = 0
-)(
-  input  logic              wr_clk_i,
-  input  logic              rd_clk_i,
+    parameter DWIDTH             = 32,
+    parameter AWIDTH             = 8,
+    parameter ALMOST_FULL_VALUE  = ( AWIDTH > 2 ) ? ( 2 ** AWIDTH - 5 ) : ( 2 ** AWIDTH - 1 ),
+    parameter ALMOST_EMPTY_VALUE = ( AWIDTH > 2 ) ? ( 5 ) : ( 2 ** ( AWIDTH - 1 ) ),
+    parameter SHOWAHEAD          = 1,
+    parameter REGISTER_OUTPUT    = 0
+  )(
+    input  logic              wr_clk_i,
+    input  logic              rd_clk_i,
 
-  input  logic              wr_rst_i,
-  input  logic              rd_rst_i,
+    input  logic              wr_rst_i,
+    input  logic              rd_rst_i,
 
-  input  logic [DWIDTH-1:0] data_i,
-  input  logic              wrreq_i,
-  input  logic              rdreq_i,
+    input  logic [DWIDTH-1:0] data_i,
+    input  logic              wrreq_i,
+    input  logic              rdreq_i,
 
-  output logic [DWIDTH-1:0] data_o,
+    output logic [DWIDTH-1:0] data_o,
 
-  output logic [AWIDTH:0]   wrusedw_o,
-  output logic [AWIDTH:0]   rdusedw_o,
+    output logic [AWIDTH:0]   wrusedw_o,
+    output logic [AWIDTH:0]   rdusedw_o,
 
-  output logic              full_o,
-  output logic              almost_full_o,
-  output logic              empty_o,
-  output logic              almost_empty_o
-);
+    output logic              full_o,
+    output logic              almost_full_o,
+    output logic              empty_o,
+    output logic              almost_empty_o
+  );
 
   logic [AWIDTH:0]   wr_ptr_bin;
   logic [AWIDTH:0]   ram_rd_ptr_bin;
@@ -44,6 +44,8 @@ module dc_fifo #(
   logic [AWIDTH:0]   rd_ptr_gray_s2;
 
   logic [AWIDTH:0]   wr_ptr_bin_rd;
+  logic [AWIDTH:0]   wr_ptr_bin_rd_d1;
+  logic [AWIDTH:0]   wr_ptr_bin_rd_d2;
   logic [AWIDTH:0]   rd_ptr_bin_wr;
 
   logic              rd_allowed;
@@ -118,7 +120,6 @@ module dc_fifo #(
         end
     end
 
-  // sync
   always_ff @( posedge rd_clk_i )
     begin
       if( rd_rst_i )
@@ -148,10 +149,25 @@ module dc_fifo #(
     end
 
   assign wr_ptr_bin_rd = gray2bin(wr_ptr_gray_s2);
+
+  always_ff @( posedge rd_clk_i )
+    begin
+      if( rd_rst_i )
+        begin
+          wr_ptr_bin_rd_d1 <= (AWIDTH+1)'(0);
+          wr_ptr_bin_rd_d2 <= (AWIDTH+1)'(0);
+        end
+      else
+        begin
+          wr_ptr_bin_rd_d1 <= wr_ptr_bin_rd;
+          wr_ptr_bin_rd_d2 <= wr_ptr_bin_rd_d1;
+        end
+    end
+
   assign rd_ptr_bin_wr = gray2bin(rd_ptr_gray_s2);
 
-  assign wr_allowed = wrreq_i && !full_o;
-  assign rd_allowed = rdreq_i && !empty_o;
+  assign wr_allowed = wrreq_i && ( !full_o  );
+  assign rd_allowed = rdreq_i && ( !empty_o );
 
   always_ff @( posedge rd_clk_i )
     begin
@@ -172,15 +188,20 @@ module dc_fifo #(
 
     2'b01:
       begin
-        assign ram_rd_en = rd_allowed;
-        assign empty_o   = ram_empty;
+        logic  stage1_valid;
+
+        assign ram_rd_en  = ( !ram_empty ) && ( ( !stage1_valid ) || rd_allowed );
+        assign ram_reg_en = rd_allowed;
+        assign empty_o    = !stage1_valid;
 
         always_ff @( posedge rd_clk_i )
           begin
             if( rd_rst_i )
-              ram_reg_en <= 1'b0;
-            else
-              ram_reg_en <= ram_rd_en;
+              stage1_valid <= 1'b0;
+            else if( ram_rd_en )
+              stage1_valid <= 1'b1;
+            else if( rd_allowed )
+              stage1_valid <= 1'b0;
           end
       end
 
@@ -188,7 +209,7 @@ module dc_fifo #(
       begin
         logic  stage1_valid;
 
-        assign ram_rd_en  = !ram_empty && ( !stage1_valid || rd_allowed );
+        assign ram_rd_en  = ( !ram_empty ) && ( ( !stage1_valid ) || rd_allowed );
         assign ram_reg_en = 1'b0;
         assign empty_o    = !stage1_valid;
 
@@ -208,8 +229,8 @@ module dc_fifo #(
         logic stage1_valid;
         logic stage2_valid;
 
-        assign ram_rd_en  = !ram_empty   && ( !stage1_valid || ram_reg_en );
-        assign ram_reg_en = stage1_valid && ( !stage2_valid || rd_allowed );
+        assign ram_rd_en  = ( !ram_empty ) && ( ( !stage1_valid ) || ram_reg_en );
+        assign ram_reg_en = stage1_valid   && ( ( !stage2_valid ) || rd_allowed );
         assign empty_o    = !stage2_valid;
 
         always_ff @( posedge rd_clk_i )
@@ -249,7 +270,12 @@ module dc_fifo #(
       if( rd_rst_i )
         rdusedw <= (AWIDTH+1)'(0);
       else
-        rdusedw <= wr_ptr_bin_rd - fifo_rd_ptr_bin;
+        begin
+         if( SHOWAHEAD )
+           rdusedw <= wr_ptr_bin_rd_d2 - fifo_rd_ptr_bin;
+         else
+           rdusedw <= wr_ptr_bin_rd_d1 - fifo_rd_ptr_bin;
+        end
     end
 
   assign wrusedw_o = wrusedw;
@@ -257,7 +283,14 @@ module dc_fifo #(
 
   assign full_o    = ( wr_ptr_bin[AWIDTH]     != rd_ptr_bin_wr[AWIDTH]     ) &&
                      ( wr_ptr_bin[AWIDTH-1:0] == rd_ptr_bin_wr[AWIDTH-1:0] );
-  assign ram_empty = ( ram_rd_ptr_bin == wr_ptr_bin_rd );
+
+  always_comb
+    begin
+      if( REGISTER_OUTPUT )
+        ram_empty = ( ram_rd_ptr_bin == wr_ptr_bin_rd    );
+      else
+        ram_empty = ( ram_rd_ptr_bin == wr_ptr_bin_rd_d1 );
+    end
 
   assign almost_full_o  = ( wrusedw >= ALMOST_FULL_VALUE  );
   assign almost_empty_o = ( rdusedw <= ALMOST_EMPTY_VALUE );
